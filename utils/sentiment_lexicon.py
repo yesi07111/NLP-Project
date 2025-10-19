@@ -16,16 +16,36 @@ POSITIVE_WORDS = {
     "agradable": 1.0, "agradables": 1.0,
     "encantador": 1.2, "encantadora": 1.2, "encantadores": 1.2, "encantadoras": 1.2,
     
+    # Nuevos términos para chats
+    "épico": 1.8, "epic": 1.8, "épica": 1.8, "épicas": 1.8,
+    "legendario": 1.7, "legendaria": 1.7, "legendarios": 1.7, "legendarias": 1.7,
+    "pro": 1.6, "crack": 1.7, "maestro": 1.5, "maestra": 1.5,
+    "top": 1.5, "elite": 1.6, "vip": 1.4,
+    "cool": 1.3, "awesome": 1.5, "amazing": 1.6,
+    "chulo": 1.5, "chula": 1.5, "chulos": 1.5, "chulas": 1.5,
+    "killer": 1.6, "pico": 1.6, "cute": 1.5,
+    
     # Verbos positivos
     "amar": 1.4, "amo": 1.4, "amas": 1.4, "ama": 1.4, "amamos": 1.4, "aman": 1.4,
     "gustar": 1.0, "gusta": 1.0, "gustan": 1.0,
     "disfrutar": 1.2, "disfruto": 1.2, "disfrutas": 1.2, "disfruta": 1.2,
     "apreciar": 1.1, "aprecio": 1.1, "aprecias": 1.1, "aprecia": 1.1,
     "recomendar": 1.3, "recomiendo": 1.3, "recomiendas": 1.3, "recomienda": 1.3,
+    "shippear": 1.5, "apoyar": 1.2, "apoyo": 1.2,
+    "stan": 1.5, "dar apoyo": 1.3,
+    
+    # Nuevos verbos de chats
+    "like": 1.2, "likear": 1.2, "mencionar": 0.8, "mention": 0.8,
+    "compartir": 1.1, "share": 1.1, "retuitear": 1.0, "rt": 1.0,
+    "streamear": 1.0, "stream": 1.0,
+    "ayudar": 1.1, "colaborar": 1.2,
     
     # Sustantivos positivos
     "amor": 1.5, "alegría": 1.3, "felicidad": 1.4, "éxito": 1.3,
     "éxitos": 1.3, "sueño": 1.1, "sueños": 1.1, "logro": 1.2, "logros": 1.2,
+    "meme": 0.8, "memes": 0.8, "trend": 1.2, "viral": 1.3,
+    "fandom": 1.2, "fan": 1.1, "fans": 1.1, "hype": 1.4,
+    "equipo": 1.0, "colaboración": 1.2, "progreso": 1.3,
 }
 
 # Palabras negativas con sus puntuaciones (-0.5 a -2.0)
@@ -41,6 +61,9 @@ NEGATIVE_WORDS = {
     "decepcionante": -1.4, "decepcionantes": -1.4,
     "inútil": -1.3, "inútiles": -1.3,
     "pobre": -1.1, "pobres": -1.1,
+    "noob": -1.2, "nuevo": -0.5, "tóxico": -1.5, "toxica": -1.5,
+    "cringe": -1.3, "cringy": -1.3, "fail": -1.4,
+    "fula": -1.3, "falso": -1.4, "fake": -1.4,
     
     # Verbos negativos
     "odiar": -1.6, "odio": -1.6, "odias": -1.6, "odia": -1.6,
@@ -48,12 +71,23 @@ NEGATIVE_WORDS = {
     "molestar": -1.2, "molesto": -1.2, "molestas": -1.2, "molesta": -1.2,
     "enfadar": -1.3, "enfado": -1.3, "enfadas": -1.3, "enfada": -1.3,
     "fallar": -1.2, "fallo": -1.2, "fallas": -1.2, "falla": -1.2,
+    "ghostear": -1.3, "bloquear": -1.0, "block": -1.0,
+    "hatear": -1.5, "trollear": -1.4, "troll": -1.4,
+    "matar": -1.5, "molestar": -1.2, "tirar": -0.8,
+    
+    # Nuevos verbos de chats
+    "saltear": -0.8, "skip": -0.8, "mutear": -1.0, "mute": -1.0,
+    "reportar": -1.1, "report": -1.1, "banear": -1.3, "ban": -1.3,
+    "descarar": -1.2, "spamear": -1.2, "spam": -1.2,
     
     # Sustantivos negativos
     "odio": -1.6, "ira": -1.4, "tristeza": -1.3, "fracaso": -1.4,
     "fracasos": -1.4, "problema": -1.2, "problemas": -1.2,
     "error": -1.1, "errores": -1.1, "fallo": -1.1, "fallos": -1.1,
     "decepción": -1.3, "decepciones": -1.3,
+    "hater": -1.5, "haters": -1.5, "drama": -1.3, "spam": -1.2,
+    "scam": -1.6, "estafa": -1.6, "fake": -1.4, "falso": -1.4,
+    "chisme": -1.1, "tiradera": -1.3, "desinformación": -1.2,
 }
 
 # Intensificadores (modifican la fuerza de las palabras)
@@ -64,17 +98,21 @@ INTENSIFIERS = {
     "sumamente": 1.7, "extremadamente": 1.7, "increíblemente": 1.8,
     "realmente": 1.4, "verdaderamente": 1.4, "absolutamente": 1.6,
     "totalmente": 1.5, "completamente": 1.5,
+    "mega": 1.6, "ultra": 1.7, "extra": 1.5, "plus": 1.4,
     
     # Intensificadores negativos (reducen la intensidad)
     "poco": 0.5, "ligeramente": 0.7, "levemente": 0.7,
-    "algo": 0.8, "medianamente": 0.8,
+    "algo": 0.8, "medianamente": 0.8, "más o menos": 0.7,
+    "casi": 0.6, "apenas": 0.5, "un poco": 0.6,
 }
 
 # Negadores (invierten el sentido de la palabra siguiente)
 NEGATORS = {
     "no", "ni", "nunca", "jamás", "jamas", "nadie", "nada", "ninguno", "ninguna",
     "ningunos", "ningunas", "tampoco", "sin", "ni siquiera", "en mi vida",
-    "de ninguna manera", "de ningún modo"
+    "de ninguna manera", "de ningún modo", "para nada", "en absoluto",
+    "de ningún modo", "en lo más mínimo", "bajo ningún concepto",
+    "na", "nah", "nope", "nel",
 }
 
 # Expresiones idiomáticas (frases hechas con significado propio)
@@ -97,6 +135,25 @@ IDIOMATIC_EXPRESSIONS = {
     "ser la gota que colma el vaso": -1.7,
     "estar en la cima del mundo": 2.0,
     "tocar el cielo con las manos": 2.0,
+    
+    # Nuevas expresiones para chats
+    "morir de risa": 1.8, "riendo a carcajadas": 1.8,
+    "estar en shock": -1.2, "quedar en shock": -1.2,
+    "flipar en colores": 1.6, "alucinar": 1.4,
+    "estar en la luna": 0.9, "soñar despierto": 1.0,
+    "ir a toda leche": 1.3, "a toda velocidad": 1.3,
+    "estar hasta los cojones": -1.9, "estar hasta el coño": -1.9,
+    "pasar de todo": -0.8, "no importar": -0.8,
+    "ser la leche": 1.8, "ser brutal": 1.7,
+    "estar on fire": 1.6, "encendido": 1.6,
+    "dar cringe": -1.5, "dar vergüenza ajena": -1.5,
+    "shippear hard": 1.7, "ser otp": 1.6,
+    "stan": 1.5, "ser fan absoluto": 1.5,
+    "ghosting": -1.4, "dejar en visto": -1.3,
+    "fomo": -1.2, "miedo a perderse algo": -1.2,
+    "dar chucho": -1.3, "molestar": -1.2,
+    "ser la pincha": 1.4, "tener una idea genial": 1.4,
+    "dar apoyo": 1.3, "apoyar": 1.2,
 }
 
 # Emojis y emoticones con sus puntuaciones
@@ -105,13 +162,25 @@ EMOJI_LEXICON = {
     "😊": 1.5, "😄": 1.6, "😃": 1.5, "😁": 1.4, "😆": 1.3,
     "😍": 1.8, "😘": 1.7, "❤️": 1.8, "💕": 1.6, "💖": 1.7,
     "👍": 1.4, "👌": 1.3, "👏": 1.5, "🙌": 1.5, "🎉": 1.6,
+    "😎": 1.4, "🥳": 1.7, "🤩": 1.8, "😜": 1.2, "😝": 1.2,
+    "😇": 1.3, "😺": 1.3, "😸": 1.4, "😹": 1.5, "😻": 1.8,
+    "😂": 1.6, "🤣": 1.7, "😭": -1.7, "😢": -1.5,
     
     # Caras neutrales
     "😐": 0.0, "😶": 0.0, "🤔": 0.1, "😏": -0.2, "😒": -0.3,
+    "🤷": 0.0, "🤷‍♂️": 0.0, "🤷‍♀️": 0.0, "😬": -0.4, "😅": 0.5,
     
     # Caras tristes/enojadas
-    "😢": -1.5, "😭": -1.7, "😠": -1.6, "😡": -1.8, "👎": -1.4,
+    "😠": -1.6, "😡": -1.8, "👎": -1.4,
     "💔": -1.8, "😞": -1.3, "😔": -1.2, "😕": -0.8, "😤": -1.5,
+    "😩": -1.6, "😫": -1.7, "😖": -1.4, "😣": -1.5, "😥": -1.2,
+    
+    # Nuevos emojis de chats
+    "🔥": 1.6, "💯": 1.8, "⭐": 1.5, "✨": 1.4, "💫": 1.3,
+    "🎯": 1.4, "🏆": 1.7, "👑": 1.6, "💎": 1.5, "🚀": 1.5,
+    "💀": -1.5, "☠️": -1.6, "😈": -1.3, "👹": -1.4, "👺": -1.3,
+    "😱": -1.6, "😨": -1.4, "😰": -1.5, "😓": -1.2, "😪": -0.8,
+    "🤡": -1.2, "🤖": 0.5, "👻": -0.3, "🎃": -0.2,
 }
 
 # Combinar todos los léxicos en uno solo para búsqueda más rápida
