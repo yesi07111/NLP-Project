@@ -8,115 +8,178 @@ Interfaz principal: analyze_sentiment(text) -> {label, score, details}
 from typing import List, Dict, Any
 import re
 
-try:
-    import spacy
-    from spacy.language import Language
-    _HAS_SPACY = True
-except Exception:
-    spacy = None
-    _HAS_SPACY = False
+import spacy
+from spacy.language import Language
 
-from sentiment_lexicon import LEXICON, INTENSIFIERS, NEGATORS, EMOJI_LEXICON
+nlp = spacy.load("es_core_news_md")
 
-def _token_polarity(token_text: str) -> float:
-    t = token_text.lower()
+from sentiment_lexicon import *
+
+def _token_polarity(token) -> float:
+    """Calcula la polaridad de un token, considerando su forma base (lema).
+    
+    Args:
+        token: Token de spaCy que incluye información de lematización y POS
+        
+    Returns:
+        float: Puntuación de sentimiento del token
+    """
+    # Primero buscar el token original en minúsculas
+    t = token.text.lower()
+    
+    # Buscar el lema del token (forma base)
+    lemma = token.lemma_.lower() if hasattr(token, 'lemma_') else t
+    
+    # Buscar en el léxico principal con el texto original
     if t in LEXICON:
         return LEXICON[t]
+    
+    # Si no se encuentra, buscar el lema
+    if lemma in LEXICON and lemma != t:
+        return LEXICON[lemma]
+    
+    # Buscar en el diccionario de emojis
     if t in EMOJI_LEXICON:
         return EMOJI_LEXICON[t]
+    
+    # Manejar palabras que cambian de polaridad según el contexto
+    if t in CONTEXT_DEPENDENT:
+        word_info = CONTEXT_DEPENDENT[t]
+        # Verificar si coincide la categoría gramatical
+        if token.pos_ == word_info['POS']:
+            # Buscar contexto en los hijos (palabras modificadas por este token)
+            for child in token.children:
+                if child.text.lower() in word_info['contexts']:
+                    return word_info['contexts'][child.text.lower()]
+            # Si no se encuentra contexto específico, devolver el valor por defecto
+            return word_info['score']
+    
+    # Si no se encuentra en ningún diccionario, devolver 0.0 (neutro)
     return 0.0
 
 
-# def _simple_parse(text: str) -> List[Dict[str, Any]]:
-#     """Fallback parser: divide en tokens y detecta negadores/intensificadores
-#     Devuelve lista de tokens con fields: text, idx, polarity, is_negator, intensifier
-#     """
-#     # tokenizamos de forma muy simple (palabras y emojis)
-#     tokens = re.findall(r"\w+|[^-\u007F]+", text)
-#     parsed = []
-#     for i, tok in enumerate(tokens):
-#         low = tok.lower()
-#         parsed.append({
-#             "text": tok,
-#             "idx": i,
-#             "polarity": _token_polarity(low),
-#             "is_negator": low in NEGATORS,
-#             "intensifier": INTENSIFIERS.get(low, 1.0),
-#         })
-#     return parsed
-
-
 def analyze_sentiment(text: str) -> Dict[str, Any]:
-    """Analiza sentimiento de `text` y devuelve etiqueta, score y detalles.
-
-    Estrategia:
-      - Si spaCy está disponible, parsea dependencias y aplica reglas sobre
-        relaciones: negación (child 'neg'), modificadores adverbiales (advmod),
-        adjetivos (amod), conjunciones adversativas ('pero').
-      - Si spaCy no está disponible, usa un parser simple basado en tokens y
-        aplica reglas locales (mirar token anterior para negador e intensificador).
+    """Analiza el sentimiento de un texto.
+    
+    Args:
+        text: Texto a analizar
+        
+    Returns:
+        Dict con las claves:
+        - label: 'positivo', 'negativo' o 'neutro'
+        - score: Puntuación numérica del sentimiento
+        - details: Lista de tokens con su contribución al sentimiento
+        - sentences: Lista de oraciones con sus puntuaciones
     """
-    if _HAS_SPACY:
-        nlp = spacy.load("es_core_news_md") if "es_core_news_md" in spacy.util.get_installed_models() else None
-        # intentar cargar modelo en runtime; si falla, fallback
-        if nlp is not None:
-            doc = nlp(text)
-            score = 0.0
-            details = []
-            # detectar cláusulas con 'pero' para dar preferencia a lo que sigue
-            has_but = any([tok.text.lower() == "pero" for tok in doc])
-            for tok in doc:
-                p = _token_polarity(tok.text)
-                if p == 0.0:
-                    continue
-                mult = 1.0
-                # intensificador: adverbial modifier o child con token en INTENSIFIERS
-                for child in tok.children:
-                    ctext = child.text.lower()
-                    if ctext in INTENSIFIERS:
-                        mult *= INTENSIFIERS[ctext]
-                    if child.dep_ == "neg":
-                        mult *= -1
-                # revisar si hay negación como ancestro
-                ancestor = tok
-                while ancestor.head is not ancestor:
-                    if ancestor.head.text.lower() in NEGATORS:
-                        mult *= -1
-                        break
-                    if ancestor.dep_ == 'ROOT':
-                        break
-                    ancestor = ancestor.head
-
-                contribution = p * mult
-                details.append({"token": tok.text, "base": p, "mult": mult, "contribution": contribution})
-                score += contribution
-
-            # si hay 'pero', damos más peso a lo que viene después de 'pero'
-            if has_but:
-                # simple heurística: si 'pero' aparece, aumentar la magnitud
-                score *= 1.2
-
-            label = _score_to_label(score)
-            return {"label": label, "score": score, "details": details}
-
-    # # fallback simple
-    # parsed = _simple_parse(text)
-    # score = 0.0
-    # details = []
-    # for i, token in enumerate(parsed):
-    #     p = token["polarity"]
-    #     if p == 0.0:
-    #         continue
-    #     mult = token.get("intensifier", 1.0)
-    #     # si el token anterior es negador, invertimos
-    #     if i > 0 and parsed[i - 1]["is_negator"]:
-    #         mult *= -1
-    #     contribution = p * mult
-    #     details.append({"token": token["text"], "base": p, "mult": mult, "contribution": contribution})
-    #     score += contribution
-
-    # label = _score_to_label(score)
-    # return {"label": label, "score": score, "details": details}
+    if not text.strip():
+        return {
+            'label': 'neutro',
+            'score': 0.0,
+            'details': [],
+            'sentences': []
+        }
+    
+    doc = nlp(text)
+    total_score = 0.0
+    all_details = []
+    sentence_scores = []
+    
+    # Procesar cada oración por separado
+    for sent in doc.sents:
+        sent_score = 0.0
+        sent_details = []
+        i = 0
+        
+        while i < len(sent):
+            # Verificar si hay una expresión idiomática que comience en esta posición
+            remaining_text = sent[i:].text.lower()
+            idiom_found = False
+            
+            for expr, expr_score in IDIOMATIC_EXPRESSIONS.items():
+                if remaining_text.startswith(expr.lower()):
+                    # Contar cuántas palabras tiene la expresión
+                    expr_word_count = len(expr.split())
+                    sent_score += expr_score
+                    sent_details.append({
+                        'text': ' '.join(t.text for t in sent[i:i+expr_word_count]),
+                        'score': expr_score,
+                        'type': 'idiom',
+                        'start': sent[i].idx,
+                        'end': sent[i+expr_word_count-1].idx + len(sent[i+expr_word_count-1].text)
+                    })
+                    i += expr_word_count
+                    idiom_found = True
+                    break
+            
+            if idiom_found:
+                continue
+                
+            # Análisis de tokens individuales
+            token = sent[i]
+            
+            # Saltar espacios en blanco
+            if token.is_space:
+                i += 1
+                continue
+                
+            # Obtener polaridad del token
+            polarity = _token_polarity(token)
+            
+            # Verificar negaciones e intensificadores
+            mult = 1.0
+            negated = False
+            
+            # Verificar si hay un negador antes del token
+            for child in token.children:
+                if child.text.lower() in NEGATORS and child.i < token.i:
+                    mult *= -1
+                    negated = True
+                    break
+                    
+            # Verificar intensificadores
+            for child in token.children:
+                if child.text.lower() in INTENSIFIERS and child.i < token.i:
+                    mult *= INTENSIFIERS[child.text.lower()]
+                    break
+            
+            # Aplicar la polaridad
+            contribution = polarity * mult
+            sent_score += contribution
+            
+            sent_details.append({
+                'text': token.text,
+                'lemma': token.lemma_,
+                'pos': token.pos_,
+                'polarity': polarity,
+                'negated': negated,
+                'multiplier': mult,
+                'contribution': contribution,
+                'start': token.idx,
+                'end': token.idx + len(token.text)
+            })
+            
+            i += 1
+        
+        # Añadir puntuación de la oración al total
+        total_score += sent_score
+        all_details.extend(sent_details)
+        
+        # Guardar información de la oración
+        sentence_scores.append({
+            'text': sent.text,
+            'score': sent_score,
+            'label': _score_to_label(sent_score)
+        })
+    
+    # Calcular el puntaje promedio
+    avg_score = total_score / len(list(doc.sents)) if len(list(doc.sents)) > 0 else 0.0
+    
+    return {
+        'label': _score_to_label(avg_score),
+        'score': avg_score,
+        'details': all_details,
+        'sentences': sentence_scores
+    }
 
 
 def _score_to_label(score: float, pos_thr: float = 0.3, neg_thr: float = -0.3) -> str:
