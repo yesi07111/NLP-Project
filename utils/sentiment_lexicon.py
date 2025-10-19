@@ -117,6 +117,24 @@ EMOJI_LEXICON = {
 # Combinar todos los léxicos en uno solo para búsqueda más rápida
 LEXICON = {**POSITIVE_WORDS, **NEGATIVE_WORDS}
 
+# Conjunciones adversativas y su peso en el análisis de sentimiento
+# (el peso se aplica a la cláusula que sigue a la conjunción)
+ADVERSATIVE_CONJUNCTIONS = {
+    'pero': 1.5,           # Aumenta el peso de la cláusula siguiente
+    'sin embargo': 1.5,    
+    'no obstante': 1.4,
+    'aunque': 1.3,        # Aunque puede ser concesiva, a menudo introduce un contraste
+    'a pesar de que': 1.3,
+    'excepto': 1.4,
+    'salvo': 1.4,
+    'aun cuando': 1.3,
+    'mas': 1.5,           # Sinónimo formal de 'pero'
+    'empero': 1.5,        # Sinónimo formal de 'pero'
+    'sino': 2.0,          # En construcciones como 'no solo X, sino también Y' da más peso a Y
+    'sino que': 2.0,
+}
+
+
 # Expresiones regulares para detectar signos de exclamación y preguntas
 EXCLAMATION_REGEX = r'!+$'
 QUESTION_REGEX = r'\?+$'

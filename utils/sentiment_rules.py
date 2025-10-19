@@ -1,6 +1,5 @@
-"""Implementación minimalista de análisis de sentimiento basada en reglas
-que operan sobre un árbol de dependencias si spaCy está disponible, o
-sobre heurísticas simples si no.
+"""Implementación de análisis de sentimiento basada en reglas
+que operan sobre un árbol de dependencias
 
 Interfaz principal: analyze_sentiment(text) -> {label, score, details}
 """
@@ -57,6 +56,61 @@ def _token_polarity(token) -> float:
     # Si no se encuentra en ningún diccionario, devolver 0.0 (neutro)
     return 0.0
 
+def _process_sentence(sent, apply_intensifiers=True):
+    """Procesa una oración sin conjunciones adversativas.
+    
+    Args:
+        sent: La oración a procesar (objeto Span de spaCy)
+        apply_intensifiers: Si es True, aplica los intensificadores
+    """
+    sent_score = 0.0
+    sent_details = []
+    
+    for token in sent:
+        if token.is_space:
+            continue
+            
+        # Obtener polaridad del token
+        polarity = _token_polarity(token)
+        
+        # Verificar negaciones e intensificadores
+        mult = 1.0
+        negated = False
+        intensified = False
+        
+        # Verificar si hay un negador antes del token
+        for child in token.children:
+            if child.text.lower() in NEGATORS and child.i < token.i:
+                mult *= -1
+                negated = True
+                break
+                
+        # Verificar intensificadores
+        if apply_intensifiers:
+            for child in token.children:
+                if child.text.lower() in INTENSIFIERS and child.i < token.i:
+                    mult *= INTENSIFIERS[child.text.lower()]
+                    intensified = True
+                    break
+        
+        # Aplicar la polaridad
+        contribution = polarity * mult
+        sent_score += contribution
+        
+        sent_details.append({
+            'text': token.text,
+            'lemma': token.lemma_,
+            'pos': token.pos_,
+            'polarity': polarity,
+            'negated': negated,
+            'intensified': intensified,
+            'multiplier': mult,
+            'contribution': contribution,
+            'start': token.idx,
+            'end': token.idx + len(token.text)
+        })
+    
+    return sent_score, sent_details
 
 def analyze_sentiment(text: str) -> Dict[str, Any]:
     """Analiza el sentimiento de un texto.
@@ -86,79 +140,58 @@ def analyze_sentiment(text: str) -> Dict[str, Any]:
     
     # Procesar cada oración por separado
     for sent in doc.sents:
+        sent_text = sent.text.lower()
         sent_score = 0.0
         sent_details = []
-        i = 0
         
-        while i < len(sent):
-            # Verificar si hay una expresión idiomática que comience en esta posición
-            remaining_text = sent[i:].text.lower()
-            idiom_found = False
-            
-            for expr, expr_score in IDIOMATIC_EXPRESSIONS.items():
-                if remaining_text.startswith(expr.lower()):
-                    # Contar cuántas palabras tiene la expresión
-                    expr_word_count = len(expr.split())
-                    sent_score += expr_score
-                    sent_details.append({
-                        'text': ' '.join(t.text for t in sent[i:i+expr_word_count]),
-                        'score': expr_score,
-                        'type': 'idiom',
-                        'start': sent[i].idx,
-                        'end': sent[i+expr_word_count-1].idx + len(sent[i+expr_word_count-1].text)
-                    })
-                    i += expr_word_count
-                    idiom_found = True
-                    break
-            
-            if idiom_found:
-                continue
+        # Verificar si hay conjunciones adversativas
+        has_adversative = False
+        adversative_conj = None
+        
+        # Buscar conjunciones adversativas en la oración
+        for conj in ADVERSATIVE_CONJUNCTIONS:
+            if conj in sent_text:
+                has_adversative = True
+                adversative_conj = conj
+                break
+        
+        # Si hay conjunción adversativa, dividir la oración
+        if has_adversative:
+            parts = re.split(rf'(\b{re.escape(adversative_conj)}\b)', sent_text, flags=re.IGNORECASE)
+            if len(parts) >= 3:
+                # Primera parte (antes de la conjunción)
+                first_part_text = parts[0].strip()
+                if first_part_text:
+                    first_part = nlp(first_part_text)
+                    first_score, first_details = _process_sentence(first_part)
+                else:
+                    first_score, first_details = 0.0, []
                 
-            # Análisis de tokens individuales
-            token = sent[i]
-            
-            # Saltar espacios en blanco
-            if token.is_space:
-                i += 1
-                continue
-                
-            # Obtener polaridad del token
-            polarity = _token_polarity(token)
-            
-            # Verificar negaciones e intensificadores
-            mult = 1.0
-            negated = False
-            
-            # Verificar si hay un negador antes del token
-            for child in token.children:
-                if child.text.lower() in NEGATORS and child.i < token.i:
-                    mult *= -1
-                    negated = True
-                    break
+                # Segunda parte (después de la conjunción)
+                second_part_text = ''.join(parts[2:]).strip()
+                if second_part_text:
+                    second_part = nlp(second_part_text)
+                    # Aplicar el peso de la conjunción adversativa
+                    adv_weight = ADVERSATIVE_CONJUNCTIONS[adversative_conj]
+                    second_score, second_details = _process_sentence(second_part)
+                    second_score *= adv_weight
                     
-            # Verificar intensificadores
-            for child in token.children:
-                if child.text.lower() in INTENSIFIERS and child.i < token.i:
-                    mult *= INTENSIFIERS[child.text.lower()]
-                    break
-            
-            # Aplicar la polaridad
-            contribution = polarity * mult
-            sent_score += contribution
-            
-            sent_details.append({
-                'text': token.text,
-                'lemma': token.lemma_,
-                'pos': token.pos_,
-                'polarity': polarity,
-                'negated': negated,
-                'multiplier': mult,
-                'contribution': contribution,
-                'start': token.idx,
-                'end': token.idx + len(token.text)
-            })
-            
-            i += 1
+                    # Ajustar los detalles para reflejar el peso
+                    for detail in second_details:
+                        detail['multiplier'] *= adv_weight
+                        detail['contribution'] = detail['polarity'] * detail['multiplier']
+                else:
+                    second_score, second_details = 0.0, []
+                
+                # Calcular puntuación final de la oración
+                sent_score = (first_score + second_score) / 2
+                sent_details = first_details + second_details
+            else:
+                # Si no se puede dividir correctamente, procesar normalmente
+                sent_score, sent_details = _process_sentence(sent)
+        else:
+            # Si no hay conjunción adversativa, procesar normalmente
+            sent_score, sent_details = _process_sentence(sent)
         
         # Añadir puntuación de la oración al total
         total_score += sent_score
@@ -172,15 +205,15 @@ def analyze_sentiment(text: str) -> Dict[str, Any]:
         })
     
     # Calcular el puntaje promedio
-    avg_score = total_score / len(list(doc.sents)) if len(list(doc.sents)) > 0 else 0.0
+    num_sentences = len(list(doc.sents))
+    avg_score = total_score / num_sentences if num_sentences > 0 else 0.0
     
     return {
         'label': _score_to_label(avg_score),
         'score': avg_score,
-        'details': all_details,
-        'sentences': sentence_scores
+        #'details': all_details,
+        #'sentences': sentence_scores
     }
-
 
 def _score_to_label(score: float, pos_thr: float = 0.3, neg_thr: float = -0.3) -> str:
     if score >= pos_thr:
@@ -195,7 +228,9 @@ if __name__ == "__main__":
         "Me gusta mucho esto, es excelente 👍",
         "No me gustó, estuvo terrible",
         "Está bien, pero podría ser mejor",
-        "No me gusta el servicio, pero la comida está muy buena."
+        "No me gusta el servicio, pero la comida está buena.",
+        "No me gusta el servicio, pero la comida está muy buena.",
+        "No me gusta el servicio"
     ]
     for ex in examples:
         print(ex, "->", analyze_sentiment(ex))
