@@ -23,6 +23,80 @@ from ui.widgets import ChatListWidget
 from ui.dialogs import DateRangeDialog, MediaSelectionDialog, ChatPreviewDialog
 
 
+# Nueva clase para la ventana de resultados de análisis de sentimientos
+class SentimentAnalysisDialog(QDialog):
+    def __init__(self, summary, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Análisis de Sentimientos")
+        self.setGeometry(400, 200, 600, 500)
+        self.setModal(True)  # Bloquea la ventana principal hasta cerrar
+        
+        layout = QVBoxLayout()
+        
+        # Título
+        title = QLabel("<h3>Análisis de Sentimientos</h3>")
+        layout.addWidget(title)
+        
+        # Scroll area para contenido largo
+        from PyQt6.QtWidgets import QScrollArea, QWidget
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        
+        # Resumen general
+        general_text = f"""
+        <h4>Resumen General</h4>
+        <p><b>Total de Mensajes Analizados:</b> {summary.get('total_messages', 0)}</p>
+        <p><b>Puntuación Promedio:</b> {summary.get('average_score', 0.0)}</p>
+        <p><b>Sentimiento Más Común:</b> {summary.get('most_common_sentiment', 'N/A')}</p>
+        <h5>Distribución General:</h5>
+        <ul>
+        """
+        for label, count in summary.get('distribution', {}).items():
+            general_text += f"<li>{label.capitalize()}: {count}</li>"
+        general_text += "</ul><h5>Porcentajes Generales:</h5><ul>"
+        for label, perc in summary.get('percentages', {}).items():
+            general_text += f"<li>{label.capitalize()}: {perc}%</li>"
+        general_text += "</ul>"
+        
+        general_label = QLabel(general_text)
+        general_label.setWordWrap(True)
+        general_label.setStyleSheet("font-size: 12px; padding: 10px;")
+        content_layout.addWidget(general_label)
+        
+        # Análisis por usuario
+        user_sentiments = summary.get('user_sentiments', {})
+        if user_sentiments:
+            user_title = QLabel("<h4>Análisis por Participante</h4>")
+            content_layout.addWidget(user_title)
+            
+            for user, data in user_sentiments.items():
+                user_text = f"""
+                <p><b>Usuario:</b> {user}</p>
+                <p><b>Mensajes:</b> {data['total_messages']}</p>
+                <p><b>Puntuación Promedio:</b> {data['average_score']}</p>
+                <p><b>Sentimiento Más Común:</b> {data['most_common_sentiment']}</p>
+                <p><b>Distribución:</b> {data['distribution']}</p>
+                <p><b>Porcentajes:</b> {data['percentages']}</p>
+                <hr>
+                """
+                user_label = QLabel(user_text)
+                user_label.setWordWrap(True)
+                user_label.setStyleSheet("font-size: 11px; padding: 5px; background-color: #f9f9f9;")
+                content_layout.addWidget(user_label)
+        
+        scroll.setWidget(content_widget)
+        layout.addWidget(scroll)
+        
+        # Botón para cerrar
+        close_btn = QPushButton("Cerrar")
+        close_btn.clicked.connect(self.accept)
+        layout.addWidget(close_btn)
+        
+        self.setLayout(layout)
+
+
 class TelegramApp(QWidget):
     def __init__(self):
         super().__init__()
@@ -57,6 +131,7 @@ class TelegramApp(QWidget):
         worker.code_sent.connect(self.on_code_sent)
         worker.download_progress.connect(self.on_download_progress)
         worker.download_completed.connect(self.on_download_completed)
+        worker.sentiment_analysis_completed.connect(self.on_sentiment_analysis_completed)  # Nueva conexión
         return worker
 
     async def get_client(self):
@@ -333,6 +408,8 @@ class TelegramApp(QWidget):
             self.chat_widgets[tab_key] = chat_widget
             self.chat_tabs.addTab(chat_widget, tab_name)
 
+        # Nueva pestaña para análisis de sentimientos (REMOVIDA - ahora es una ventana)
+
         chat_layout.addWidget(self.chat_tabs)
 
         analysis_label = QLabel("<b>Herramientas de Análisis:</b>")
@@ -393,6 +470,7 @@ class TelegramApp(QWidget):
         self.worker.code_sent.connect(self.on_code_sent)
         self.worker.download_progress.connect(self.on_download_progress)
         self.worker.download_completed.connect(self.on_download_completed)
+        self.worker.sentiment_analysis_completed.connect(self.on_sentiment_analysis_completed)  # Nueva señal
 
     def start_login(self):
         phone = self.phone_input.text().strip()
@@ -715,6 +793,12 @@ class TelegramApp(QWidget):
                 + "\n".join(failed[:10])
                 + (f"\n... y {len(failed) - 10} más" if len(failed) > 10 else ""),
             )
+
+    def on_sentiment_analysis_completed(self, summary):
+        # Abrir nueva ventana con el resumen
+        dialog = SentimentAnalysisDialog(summary, self)
+        dialog.exec()
+
 
     def start_analysis(self, analysis_type):
         selected_chats = []

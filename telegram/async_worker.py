@@ -27,6 +27,7 @@ class AsyncWorker(QThread):
     download_progress = pyqtSignal(str, int, int)
     download_completed = pyqtSignal(list, list)
     preview_loaded = pyqtSignal(list)
+    sentiment_analysis_completed = pyqtSignal(dict)  # Nueva señal para análisis de sentimientos
 
     def __init__(self, client):
         super().__init__()
@@ -728,7 +729,39 @@ class AsyncWorker(QThread):
         return media_info
 
     async def _process_total_analysis(self):
-        pass
+        try:
+            # Cargar mensajes de los archivos JSON generados recientemente
+            import glob
+            json_files = glob.glob("*.json")  # Buscar archivos JSON en el directorio actual
+            if not json_files:
+                self.error.emit("No se encontraron archivos JSON para analizar")
+                return
+            
+            # Procesar el último archivo (asumiendo que es el más reciente)
+            latest_file = max(json_files, key=os.path.getctime)
+            with open(latest_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            messages = data.get("messages", [])
+            if not messages:
+                self.error.emit("No hay mensajes en el archivo JSON para analizar")
+                return
+            
+            # Importar y usar el módulo de análisis de sentimientos
+            from utils.sentiment_analysis import get_sentiment_summary
+            summary = get_sentiment_summary(messages)
+            
+            # Guardar el resumen en un archivo para la UI
+            summary_file = latest_file.replace(".json", "_sentiment_summary.json")
+            with open(summary_file, 'w', encoding='utf-8') as f:
+                json.dump(summary, f, ensure_ascii=False, indent=2)
+            
+            # Emitir señal para actualizar la UI
+            self.sentiment_analysis_completed.emit(summary)
+            
+        except Exception as e:
+            self.error.emit(f"Error en análisis de sentimientos: {e}")
+            print(f"Error en _process_total_analysis: {e}")
 
     async def _process_key_information(self):
         pass

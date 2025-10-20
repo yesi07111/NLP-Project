@@ -12,7 +12,7 @@ from spacy.language import Language
 
 nlp = spacy.load("es_core_news_md")
 
-from sentiment_lexicon import *
+from utils.sentiment_lexicon import *
 
 def _token_polarity(token) -> float:
     """Calcula la polaridad de un token, considerando su forma base (lema).
