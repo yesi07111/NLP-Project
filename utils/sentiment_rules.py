@@ -12,7 +12,12 @@ from spacy.language import Language
 
 nlp = spacy.load("es_core_news_md")
 
-from utils.sentiment_lexicon import *
+from sentiment_lexicon import *
+from nltk.corpus import sentiwordnet as swn
+from googletrans import Translator
+
+translator = Translator()
+
 
 def _token_polarity(token) -> float:
     """Calcula la polaridad de un token, considerando su forma base (lema).
@@ -53,7 +58,15 @@ def _token_polarity(token) -> float:
             # Si no se encuentra contexto específico, devolver el valor por defecto
             return word_info['score']
     
-    # Si no se encuentra en ningún diccionario, devolver 0.0 (neutro)
+    # Fallback a SentiWordNet (en inglés) para palabras no encontradas
+
+    # translated = translator.translate(lemma, src='es', dest='en').text.lower()
+    # synsets = list(swn.senti_synsets(translated))
+    # if synsets:
+    #     synset = synsets[0]  # Usa el synset más común
+    #     net_score = synset.pos_score() - synset.neg_score()
+    #     return net_score * 0.5  # Escala para no dominar el léxico local
+
     return 0.0
 
 def _process_sentence(sent, apply_intensifiers=True):
@@ -225,12 +238,21 @@ def _score_to_label(score: float, pos_thr: float = 0.3, neg_thr: float = -0.3) -
 
 if __name__ == "__main__":
     examples = [
-        "Me gusta mucho esto, es excelente 👍",
-        "No me gustó, estuvo terrible",
-        "Está bien, pero podría ser mejor",
-        "No me gusta el servicio, pero la comida está buena.",
-        "No me gusta el servicio, pero la comida está muy buena.",
-        "No me gusta el servicio"
+        # "Me gusta mucho esto, es excelente 👍",
+        # "No me gustó, estuvo terrible",
+        # "Está bien, pero podría ser mejor",
+        # "No me gusta el servicio, pero la comida está buena.",
+        # "No me gusta el servicio, pero la comida está muy buena.",
+        # "No me gusta el servicio",
+        # "El servicio esta malo",
+        # "El servicio no esta malo",
+        # "El servicio no esta muy bueno",
+        #"La obra de teatro careció de emoción y profesionalismo.",
+        #"La entrega tardó mucho más de lo esperado.",
+        #"La visita guiada al sitio arqueológico fue educativa y emocionante, el guía explicaba cada detalle con gran entusiasmo y conocimiento.",
+        #"La conferencia educativa a la que asistí fue inspiradora, los ponentes eran expertos en su área y brindaron conocimientos muy valiosos.",
+        #"El museo tenía pocas exposiciones abiertas y la mayoría estaban en malas condiciones, fue una experiencia frustrante para los visitantes.",
+        "No puedo decir nada bueno de ti",
     ]
     for ex in examples:
         print(ex, "->", analyze_sentiment(ex))

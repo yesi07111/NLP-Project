@@ -46,6 +46,22 @@ POSITIVE_WORDS = {
     "meme": 0.8, "memes": 0.8, "trend": 1.2, "viral": 1.3,
     "fandom": 1.2, "fan": 1.1, "fans": 1.1, "hype": 1.4,
     "equipo": 1.0, "colaboración": 1.2, "progreso": 1.3,
+    # Nuevas palabras positivas agregadas del dataset
+    "alta": 1.0, "calidad": 1.2, "satisfecho": 1.5, "encanta": 1.4,
+    "diseño": 1.1, "funcionalidad": 1.2, "intuitiva": 1.3, "fácil": 1.3,
+    "contento": 1.4, "superó": 1.3, "expectativas": 1.2, "evento": 1.0,
+    "cultural": 1.0, "talento": 1.3, "presentación": 1.1, "museo": 1.0,
+    "exhibiciones": 1.2, "interactivas": 1.3, "educativas": 1.2, "familia": 0.8,
+    "programación": 1.0, "festival": 1.0, "variada": 1.1, "atractiva": 1.2,
+    "disfruté": 1.3, "interés": 1.1,
+    "aprender": 1.1, "cómodo": 1.3,
+    "moderno": 1.1, "recomendado": 1.4,
+    "rápido": 1.2, "eficiente": 1.3, "puntual": 1.3,
+    "impresionante": 1.5, "enriquecedor": 1.4, "entretenido": 1.3,
+    "diversidad": 1.2, "capacitados": 1.4, "comprometidos": 1.3, "estimulante": 1.4,
+    "excepcional": 1.6, "acogedor": 1.3, "deliciosa": 1.5,
+    "velada": 1.1, "especial": 1.3,
+    "amabilidad": 1.4, "emoción": 1.5,
 }
 
 # Palabras negativas con sus puntuaciones (-0.5 a -2.0)
@@ -78,7 +94,7 @@ NEGATIVE_WORDS = {
     # Nuevos verbos de chats
     "saltear": -0.8, "skip": -0.8, "mutear": -1.0, "mute": -1.0,
     "reportar": -1.1, "report": -1.1, "banear": -1.3, "ban": -1.3,
-    "descarar": -1.2, "spamear": -1.2, "spam": -1.2,
+    "descarar": -1.2, "spamear": -1.2, "spam": -1.2, "carecer": -1.5,
     
     # Sustantivos negativos
     "odio": -1.6, "ira": -1.4, "tristeza": -1.3, "fracaso": -1.4,
@@ -88,6 +104,14 @@ NEGATIVE_WORDS = {
     "hater": -1.5, "haters": -1.5, "drama": -1.3, "spam": -1.2,
     "scam": -1.6, "estafa": -1.6, "fake": -1.4, "falso": -1.4,
     "chisme": -1.1, "tiradera": -1.3, "desinformación": -1.2,
+    # Nuevas palabras negativas agregadas del dataset
+    "decepcionado": -1.4, "tardaron": -1.0, "responder": -0.9,
+    "inconveniente": -1.2, "aburrido": -1.3, "monótona": -1.2,
+    "presentaciones": -0.8, "baja": -1.1, "afecta": -1.1, "lenta": -1.2, "difícil": -1.3,
+    "desactualizado": -1.1,
+    "confuso": -1.2, "lento": -1.2, "dañado": -1.4,
+    "cumplen": -1.1, "reemplazo": -1.0, "desordenada": -1.3,
+    "vacío": -1.2, "desmotivador": -1.4,
 }
 
 # Intensificadores (modifican la fuerza de las palabras)
@@ -112,7 +136,7 @@ NEGATORS = {
     "ningunos", "ningunas", "tampoco", "sin", "ni siquiera", "en mi vida",
     "de ninguna manera", "de ningún modo", "para nada", "en absoluto",
     "de ningún modo", "en lo más mínimo", "bajo ningún concepto",
-    "na", "nah", "nope", "nel",
+    "na", "nah", "nope", "nel", ""
 }
 
 # Expresiones idiomáticas (frases hechas con significado propio)
