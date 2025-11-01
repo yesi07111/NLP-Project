@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix, classification_report
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sentiment_rules import analyze_sentiment
+from utils.sentiment_rules import analyze_sentiment
 
 def load_test_data(filepath):
     """Load test data from CSV file."""
@@ -120,7 +120,7 @@ def plot_confusion_matrix(cm, labels):
 
 def main():
     # Configuration
-    test_file = 'utils/dataset.csv'
+    test_file = input("Ruta del dataset: ")
     temp_output = 'resultados_sentimiento_temp.csv'
     final_output = 'resultados_sentimiento_final.csv'
     
