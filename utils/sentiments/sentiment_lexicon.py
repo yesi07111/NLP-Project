@@ -32,7 +32,7 @@ POSITIVE_WORDS = {
     "apreciar": 1.1, "aprecio": 1.1, "aprecias": 1.1, "aprecia": 1.1,
     "recomendar": 1.3, "recomiendo": 1.3, "recomiendas": 1.3, "recomienda": 1.3,
     "shippear": 1.5, "apoyar": 1.2, "apoyo": 1.2,
-    "stan": 1.5, "dar apoyo": 1.3,
+    "stan": 1.5, "dar apoyo": 1.3, "tener": 1.2,
     
     # Nuevos verbos de chats
     "like": 1.2, "likear": 1.2, "mencionar": 0.8, "mention": 0.8,
@@ -52,7 +52,7 @@ POSITIVE_WORDS = {
     "contento": 1.4, "superó": 1.3, "expectativas": 1.2, "evento": 1.0,
     "cultural": 1.0, "talento": 1.3, "presentación": 1.1, "museo": 1.0,
     "exhibiciones": 1.2, "interactivas": 1.3, "educativas": 1.2, "familia": 0.8,
-    "programación": 1.0, "festival": 1.0, "variada": 1.1, "atractiva": 1.2,
+    "festival": 1.0, "variada": 1.1, "atractiva": 1.2,
     "disfruté": 1.3, "interés": 1.1,
     "aprender": 1.1, "cómodo": 1.3,
     "moderno": 1.1, "recomendado": 1.4,
@@ -107,7 +107,7 @@ NEGATIVE_WORDS = {
     # Nuevas palabras negativas agregadas del dataset
     "decepcionado": -1.4, "tardaron": -1.0, "responder": -0.9,
     "inconveniente": -1.2, "aburrido": -1.3, "monótona": -1.2,
-    "presentaciones": -0.8, "baja": -1.1, "afecta": -1.1, "lenta": -1.2, "difícil": -1.3,
+    "presentaciones": -0.8, "baja": -1.1, "bajo": -1.1, "afecta": -1.1, "lenta": -1.2, "difícil": -1.3,
     "desactualizado": -1.1,
     "confuso": -1.2, "lento": -1.2, "dañado": -1.4,
     "cumplen": -1.1, "reemplazo": -1.0, "desordenada": -1.3,
@@ -127,7 +127,7 @@ INTENSIFIERS = {
     # Intensificadores negativos (reducen la intensidad)
     "poco": 0.5, "ligeramente": 0.7, "levemente": 0.7,
     "algo": 0.8, "medianamente": 0.8, "más o menos": 0.7,
-    "casi": 0.6, "apenas": 0.5, "un poco": 0.6,
+    "casi": 0.6, "apenas": 0.2, "un poco": 0.6
 }
 
 # Negadores (invierten el sentido de la palabra siguiente)
