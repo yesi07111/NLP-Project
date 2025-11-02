@@ -1,6 +1,6 @@
 import pandas as pd
 from collections import Counter
-from utils.sentiment_rules import analyze_sentiment  # Importa la función existente
+from utils.sentiments.sentiment_rules import analyze_sentiment  # Importa la función existente
 
 def get_sentiment_summary(messages: list) -> dict:
     """
