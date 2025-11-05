@@ -3,6 +3,15 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
+#extras
+old_code
+p.md
+*.session
+*.session-journal
+models
+train_data_info.md
+
+
 # dotenv files
 .env
 

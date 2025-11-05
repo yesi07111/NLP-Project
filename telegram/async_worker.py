@@ -790,7 +790,7 @@ class AsyncWorker(QThread):
             print("🧵 Iniciando análisis de hilos de conversación...")
             
             # Importar el módulo de análisis de hilos
-            from knowledge_graph.main import process_chat_for_knowledge_graph
+            from threads_analysis.main import process_chat_for_knowledge_graph
             
             # Buscar archivos JSON en la carpeta threads_analysis_results/chats/
             import glob
