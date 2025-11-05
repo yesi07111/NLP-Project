@@ -18,7 +18,6 @@ from utils.cache import (
 from utils.text_processing import sanitize_filename
 from telegram.message_parser import parse_message
 
-
 class AsyncWorker(QThread):
     success = pyqtSignal(str)
     error = pyqtSignal(str)
@@ -28,6 +27,7 @@ class AsyncWorker(QThread):
     download_completed = pyqtSignal(list, list)
     preview_loaded = pyqtSignal(list)
     sentiment_analysis_completed = pyqtSignal(dict)  # Nueva señal para análisis de sentimientos
+    conversation_threads_completed = pyqtSignal(dict)  # Señal cuando termine el análisis de hilos
 
     def __init__(self, client):
         super().__init__()
@@ -114,6 +114,7 @@ class AsyncWorker(QThread):
         analysis_type=None,
         media_options=None,
         preview_offset=0,
+        task_args=None,
     ):
         self.task = task_type
         self.phone = phone
@@ -129,6 +130,7 @@ class AsyncWorker(QThread):
             "documents": False,
         }
         self.preview_offset = preview_offset
+        self.task_args = task_args or {}
 
     async def _maybe_await(self, maybe_awaitable):
         try:
@@ -494,6 +496,13 @@ class AsyncWorker(QThread):
         failed = []
         total_chats = len(self.selected_chats or [])
 
+        # Si no hay chats seleccionados pero es análisis de hilos, procesar archivos existentes
+        if not self.selected_chats and self.analysis_type == "threads":
+            print("🧵 No hay chats seleccionados, procesando análisis de hilos existentes...")
+            await self._process_conversation_threads()
+            self.download_completed.emit([], [])
+            return
+
         if not self.selected_chats:
             self.error.emit("No se seleccionaron chats para descarga")
             return
@@ -506,6 +515,8 @@ class AsyncWorker(QThread):
                 messages = []
                 entity = chat_info["entity"]
                 chat_name = chat_info["name"]
+
+                print(f"📥 Descargando mensajes de: {chat_name} ({start_date} a {end_date})")
 
                 async for message in client.iter_messages(entity, limit=None):
                     if not getattr(message, "date", None):
@@ -526,17 +537,20 @@ class AsyncWorker(QThread):
                     }
 
                     messages.append(msg_data)
-
+                
                 if messages:
-                    await self._save_chat_files(chat_name, messages, start_date, end_date)
+                    await self._save_chat_files(chat_name, messages, start_date, end_date, self.task_args.get('path', '.'))
                     successful.append(chat_name)
+                    print(f"✅ Chat {chat_name} procesado: {len(messages)} mensajes")
                 else:
-                    failed.append(
-                        f"{chat_name}: No hay mensajes en el rango de fechas ({start_date} - {end_date})"
-                    )
+                    failed_msg = f"{chat_name}: No hay mensajes en el rango de fechas ({start_date} - {end_date})"
+                    failed.append(failed_msg)
+                    print(f"⚠️ {failed_msg}")
 
             except Exception as e:
-                failed.append(f"{chat_info.get('name', '<unknown>')}: {str(e)}")
+                error_msg = f"{chat_info.get('name', '<unknown>')}: {str(e)}"
+                failed.append(error_msg)
+                print(f"❌ Error en {chat_info.get('name', '<unknown>')}: {e}")
 
         try:
             if self.analysis_type == "total":
@@ -550,7 +564,7 @@ class AsyncWorker(QThread):
 
         self.download_completed.emit(successful, failed)
 
-    async def _save_chat_files(self, chat_name, messages, start_date, end_date):
+    async def _save_chat_files(self, chat_name, messages, start_date, end_date, path = "."):
         safe_name = sanitize_filename(chat_name)
         filename_base = f"{safe_name}_{start_date}_{end_date}"
 
@@ -565,7 +579,11 @@ class AsyncWorker(QThread):
             "messages": messages,
         }
 
-        json_filename = f"{filename_base}.json"
+        if path != ".":
+            os.makedirs(path, exist_ok=True)
+
+        json_filename = os.path.join(path, f"{filename_base}.json")
+
         with open(json_filename, "w", encoding="utf-8") as f:
             json.dump(json_data, f, ensure_ascii=False, indent=2)
 
@@ -767,7 +785,83 @@ class AsyncWorker(QThread):
         pass
 
     async def _process_conversation_threads(self):
-        pass
+        """Procesa los hilos de conversación usando el grafo de conocimiento"""
+        try:
+            print("🧵 Iniciando análisis de hilos de conversación...")
+            
+            # Importar el módulo de análisis de hilos
+            from knowledge_graph.main import process_chat_for_knowledge_graph
+            
+            # Buscar archivos JSON en la carpeta threads_analysis_results/chats/
+            import glob
+            json_files = glob.glob("threads_analysis_results/chats/*.json")
+            if not json_files:
+                self.error.emit("No se encontraron archivos JSON en threads_analysis_results/chats/")
+                return
+            
+            print(f"📁 Encontrados {len(json_files)} archivos para analizar")
+            
+            results = {}
+            successful_files = 0
+            
+            # Procesar cada archivo JSON encontrado
+            for json_file in json_files:
+                try:
+                    print(f"🔍 Analizando: {json_file}")
+                    
+                    # Procesar el chat y obtener el grafo, hilos y análisis
+                    graph, threads, analysis = process_chat_for_knowledge_graph(json_file)
+                    
+                    # Solo contar como exitoso si tenemos resultados
+                    if graph is not None and threads is not None and analysis is not None:
+                        # Guardar los resultados por archivo
+                        base_name = os.path.basename(json_file)
+                        results[base_name] = {
+                            "graph_info": {
+                                "total_nodos": len(graph.nodes()),
+                                "total_aristas": len(graph.edges()),
+                                "metadata": graph.graph.get('metadata', {})
+                            },
+                            "threads_count": len(threads),
+                            "analysis_summary": {
+                                "total_hilos": analysis['thread_metrics']['total_threads'],
+                                "hilo_promedio": analysis['thread_metrics']['avg_thread_length'],
+                                "usuarios_activos": len(analysis['user_engagement']['most_active_users']),
+                                "patrones_detectados": analysis['conversation_patterns']['total_conversation_patterns']
+                            }
+                        }
+                        successful_files += 1
+                        print(f"✅ Completado: {base_name} - {len(threads)} hilos encontrados")
+                    else:
+                        print(f"⚠️  Archivo {json_file} no pudo ser procesado correctamente")
+                    
+                except Exception as e:
+                    print(f"❌ Error procesando {json_file}: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    continue
+            
+            if successful_files == 0:
+                self.error.emit("No se pudo procesar ningún archivo correctamente. Verifica que los archivos JSON tengan la estructura correcta.")
+                return
+
+            # Emitir señal con los resultados completos
+            print("📤 Emitiendo señal conversation_threads_completed...")
+            self.conversation_threads_completed.emit({
+                "archivos_procesados": successful_files,
+                "archivos_totales": len(json_files),
+                "resultados_detallados": results,
+                "timestamp": datetime.now().isoformat()
+            })
+
+            print(f"🎉 Análisis de hilos completado: {successful_files}/{len(json_files)} archivos procesados exitosamente")
+            
+        except Exception as e:
+            error_msg = f"Error en análisis de hilos: {str(e)}"
+            print(f"❌ {error_msg}")
+            import traceback
+            traceback.print_exc()
+            self.error.emit(error_msg)
 
     def close_loop(self):
         try:

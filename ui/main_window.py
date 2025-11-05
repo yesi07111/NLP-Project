@@ -1,27 +1,27 @@
-
 import sys
 import os
+import json
+from datetime import datetime
+
 from PyQt6.QtWidgets import (
-    QDialog,
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QLineEdit,
-    QPushButton,
-    QLabel,
-    QStackedWidget,
-    QMessageBox,
-    QTabWidget,
+    QApplication, QDialog, QWidget, QVBoxLayout, QHBoxLayout,
+    QLineEdit, QPushButton, QLabel, QStackedWidget, QMessageBox, QTabWidget,
     QProgressBar,
 )
-from PyQt6.QtGui import QIcon, QFont, QPixmap
-from PyQt6.QtCore import Qt, QTimer
+
+from PyQt6.QtGui import (
+    QIcon, QFont, QPixmap
+)
+
+from PyQt6.QtCore import (
+    Qt, QTimer
+)
 
 from config.settings import API_ID, API_HASH, SESSION_NAME
 from telegram.async_worker import AsyncWorker
 from ui.widgets import ChatListWidget
 from ui.dialogs import DateRangeDialog, MediaSelectionDialog, ChatPreviewDialog
-
+from ui.threads_results_view import ThreadsAnalysisResults
 
 # Nueva clase para la ventana de resultados de análisis de sentimientos
 class SentimentAnalysisDialog(QDialog):
@@ -95,7 +95,6 @@ class SentimentAnalysisDialog(QDialog):
         layout.addWidget(close_btn)
         
         self.setLayout(layout)
-
 
 class TelegramApp(QWidget):
     def __init__(self):
@@ -470,7 +469,8 @@ class TelegramApp(QWidget):
         self.worker.code_sent.connect(self.on_code_sent)
         self.worker.download_progress.connect(self.on_download_progress)
         self.worker.download_completed.connect(self.on_download_completed)
-        self.worker.sentiment_analysis_completed.connect(self.on_sentiment_analysis_completed)  # Nueva señal
+        self.worker.sentiment_analysis_completed.connect(self.on_sentiment_analysis_completed)  
+        self.worker.conversation_threads_completed.connect(self.on_conversation_threads_completed) # Nueva señal
 
     def start_login(self):
         phone = self.phone_input.text().strip()
@@ -764,51 +764,220 @@ class TelegramApp(QWidget):
         self.progress_bar.setFormat(f"Procesando: {chat_name} ({current}/{total})")
 
     def on_download_completed(self, successful, failed):
+        """Manejar la finalización de la descarga de chats"""
         self.progress_bar.setVisible(False)
-
-        if successful and not failed:
-            QMessageBox.information(
-                self,
-                "Descarga Completada",
-                f"Se descargaron exitosamente {len(successful)} chats:\n"
-                + "\n".join(successful[:10])
-                + (f"\n... y {len(successful) - 10} más" if len(successful) > 10 else ""),
-            )
-        elif successful and failed:
-            QMessageBox.warning(
-                self,
-                "Descarga Parcial",
-                f"Exitosos ({len(successful)}):\n"
-                + "\n".join(successful[:5])
-                + (f"\n... y {len(successful) - 5} más" if len(successful) > 5 else "")
-                + f"\n\nFallaron ({len(failed)}):\n"
-                + "\n".join(failed[:5])
-                + (f"\n... y {len(failed) - 5} más" if len(failed) > 5 else ""),
-            )
+        
+        print(f"📥 Descarga completada - Exitosos: {len(successful)}, Fallidos: {len(failed)}")
+        
+        # Si es análisis de hilos, mostrar los resultados existentes
+        if hasattr(self, 'analysis_type') and self.analysis_type == "threads":
+            print("🧵 Es análisis de hilos, mostrando resultados...")
+            
+            # Cerrar diálogo de progreso si existe
+            if hasattr(self, 'threads_progress_dialog') and self.threads_progress_dialog:
+                try:
+                    self.threads_progress_dialog.close()
+                    self.threads_progress_dialog = None
+                    print("✅ Diálogo de progreso cerrado")
+                except Exception as e:
+                    print(f"❌ Error cerrando diálogo: {e}")
+            
+            # Habilitar botones
+            self.set_analysis_buttons_enabled(True)
+            
+            # Buscar todos los archivos de análisis en threads_analysis_results/
+            import glob
+            analysis_files = glob.glob("threads_analysis_results/*_analysis.json")
+            
+            if not analysis_files:
+                QMessageBox.warning(
+                    self, 
+                    "Análisis Completo", 
+                    "No se encontraron archivos de análisis. Es posible que el procesamiento aún esté en curso."
+                )
+                return
+            
+            print(f"📊 Encontrados {len(analysis_files)} archivos de análisis")
+            
+            # Construir resultados leyendo los archivos existentes
+            results = {
+                "archivos_procesados": len(analysis_files),
+                "archivos_totales": len(analysis_files),
+                "resultados_detallados": {},
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            for analysis_file in analysis_files:
+                try:
+                    # Obtener el nombre base del archivo (sin _analysis.json)
+                    base_name = os.path.basename(analysis_file).replace('_analysis.json', '')
+                    print(f"📖 Leyendo análisis: {base_name}")
+                    
+                    # Cargar archivo de análisis
+                    with open(analysis_file, 'r', encoding='utf-8') as f:
+                        analysis_data = json.load(f)
+                    
+                    # Cargar archivo de hilos para contar hilos
+                    threads_file = analysis_file.replace('_analysis.json', '_threads.json')
+                    threads_count = 0
+                    if os.path.exists(threads_file):
+                        with open(threads_file, 'r', encoding='utf-8') as f:
+                            threads_data = json.load(f)
+                            threads_count = len(threads_data.get('threads', {}))
+                    
+                    # Cargar archivo de grafo para obtener metadata
+                    graph_file = analysis_file.replace('_analysis.json', '_graph.json')
+                    graph_info = {}
+                    if os.path.exists(graph_file):
+                        with open(graph_file, 'r', encoding='utf-8') as f:
+                            graph_data = json.load(f)
+                            graph_info = {
+                                'total_nodos': len(graph_data.get('nodes', {})),
+                                'total_aristas': len(graph_data.get('edges', [])),
+                                'metadata': graph_data.get('metadata', {})
+                            }
+                    
+                    # Construir resultado para este archivo
+                    results["resultados_detallados"][f"{base_name}.json"] = {
+                        "graph_info": graph_info,
+                        "threads_count": threads_count,
+                        "analysis_summary": {
+                            "total_hilos": analysis_data.get('thread_metrics', {}).get('total_threads', 0),
+                            "hilo_promedio": analysis_data.get('thread_metrics', {}).get('avg_thread_length', 0),
+                            "usuarios_activos": len(analysis_data.get('user_engagement', {}).get('most_active_users', [])),
+                            "patrones_detectados": analysis_data.get('conversation_patterns', {}).get('total_conversation_patterns', 0)
+                        }
+                    }
+                    
+                    print(f"✅ Procesado: {base_name} - {threads_count} hilos")
+                    
+                except Exception as e:
+                    print(f"❌ Error procesando {analysis_file}: {e}")
+                    continue
+            
+            # Mostrar la ventana de resultados
+            print("🪟 Abriendo ventana de resultados...")
+            try:
+                self.threads_results_window = ThreadsAnalysisResults(results, self)
+                self.threads_results_window.show()
+                self.threads_results_window.raise_()
+                self.threads_results_window.activateWindow()
+                print("✅ Ventana de resultados abierta correctamente")
+            except Exception as e:
+                print(f"❌ Error abriendo ventana de resultados: {e}")
+                QMessageBox.critical(
+                    self,
+                    "Error",
+                    f"No se pudo abrir la ventana de resultados: {str(e)}"
+                )
+            
         else:
-            QMessageBox.critical(
-                self,
-                "Error en Descarga",
-                "Todos los chats fallaron:\n"
-                + "\n".join(failed[:10])
-                + (f"\n... y {len(failed) - 10} más" if len(failed) > 10 else ""),
-            )
+            # Para otros tipos de análisis, mostrar el mensaje normal
+            if successful and not failed:
+                QMessageBox.information(
+                    self,
+                    "Descarga Completada",
+                    f"Se descargaron exitosamente {len(successful)} chats:\n"
+                    + "\n".join(successful[:10])
+                    + (f"\n... y {len(successful) - 10} más" if len(successful) > 10 else ""),
+                )
+            elif successful and failed:
+                QMessageBox.warning(
+                    self,
+                    "Descarga Parcial",
+                    f"Exitosos ({len(successful)}):\n"
+                    + "\n".join(successful[:5])
+                    + (f"\n... y {len(successful) - 5} más" if len(successful) > 5 else "")
+                    + f"\n\nFallaron ({len(failed)}):\n"
+                    + "\n".join(failed[:5])
+                    + (f"\n... y {len(failed) - 5} más" if len(failed) > 5 else ""),
+                )
+            elif failed and not successful:
+                QMessageBox.critical(
+                    self,
+                    "Error en Descarga",
+                    "Todos los chats fallaron:\n"
+                    + "\n".join(failed[:10])
+                    + (f"\n... y {len(failed) - 10} más" if len(failed) > 10 else ""),
+                )
 
     def on_sentiment_analysis_completed(self, summary):
         # Abrir nueva ventana con el resumen
         dialog = SentimentAnalysisDialog(summary, self)
         dialog.exec()
 
+    def on_conversation_threads_completed(self, results):
+        """Manejar la finalización del análisis de hilos"""
+        print("✅ Análisis de hilos completado, abriendo ventana de resultados...")
+        
+        # Cerrar el diálogo de progreso si existe
+        if hasattr(self, 'threads_progress_dialog') and self.threads_progress_dialog:
+            try:
+                self.threads_progress_dialog.close()
+                self.threads_progress_dialog = None
+                print("✅ Diálogo de progreso cerrado")
+            except Exception as e:
+                print(f"❌ Error cerrando diálogo: {e}")
+        
+        # Habilitar botones nuevamente
+        self.set_analysis_buttons_enabled(True)
+        
+        # Verificar si hay resultados válidos
+        if not results:
+            QMessageBox.warning(
+                self, 
+                "Análisis Completo", 
+                "El análisis se completó pero no se generaron resultados."
+            )
+            return
+            
+        if not results.get('resultados_detallados'):
+            QMessageBox.warning(
+                self, 
+                "Análisis Completo", 
+                "El análisis se completó pero no se generaron resultados válidos.\n"
+                "Esto puede deberse a que los chats no tienen conversaciones con respuestas."
+            )
+            return
+        
+        try:
+            # Abrir la ventana de resultados
+            print("🪟 Abriendo ventana de resultados...")
+            self.threads_results_window = ThreadsAnalysisResults(results, self)
+            self.threads_results_window.show()
+            self.threads_results_window.raise_()  # Traer al frente
+            self.threads_results_window.activateWindow()  # Activar ventana
+            print("✅ Ventana de resultados abierta correctamente")
+            
+        except Exception as e:
+            print(f"❌ Error abriendo ventana de resultados: {e}")
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"No se pudo abrir la ventana de resultados: {str(e)}"
+            )
 
     def start_analysis(self, analysis_type):
-        selected_chats = []
-        for widget in self.chat_widgets.values():
-            selected_chats.extend(widget.get_selected_chats())
+        # Para análisis de hilos, permitir ejecutar sin chats seleccionados
+        if analysis_type != "threads":
+            selected_chats = []
+            for widget in self.chat_widgets.values():
+                selected_chats.extend(widget.get_selected_chats())
 
-        if not selected_chats:
-            QMessageBox.warning(
-                self, "Sin Selección", "Por favor, selecciona al menos un chat."
-            )
+            if not selected_chats:
+                QMessageBox.warning(
+                    self, "Sin Selección", "Por favor, selecciona al menos un chat."
+                )
+                return
+        else:
+            # Para análisis de hilos, obtener chats seleccionados si los hay
+            selected_chats = []
+            for widget in self.chat_widgets.values():
+                selected_chats.extend(widget.get_selected_chats())
+
+        # Si es análisis de hilos y no hay chats seleccionados, cargar análisis existentes
+        if analysis_type == "threads" and not selected_chats:
+            self.load_existing_threads_analysis()
             return
 
         date_dialog = DateRangeDialog(self)
@@ -832,12 +1001,24 @@ class TelegramApp(QWidget):
                 if self.worker.isRunning():
                     self.worker.wait()
 
+                # Guardar el tipo de análisis para uso posterior
+                self.analysis_type = analysis_type
+                
+                path = "."
+                if analysis_type == "threads":
+                    path = "./threads_analysis_results/chats"
+                    # Crear directorio si no existe
+                    os.makedirs(path, exist_ok=True)
+                    # Mostrar diálogo de progreso
+                    self.show_threads_progress_dialog()
+
                 self.worker.set_task(
                     "download_chats",
                     selected_chats=selected_chats,
                     date_range=(start_date, end_date),
                     analysis_type=analysis_type,
                     media_options=media_options,
+                    task_args={"path": path},
                 )
 
                 try:
@@ -848,6 +1029,164 @@ class TelegramApp(QWidget):
                 self.worker.finished.connect(lambda: self.set_analysis_buttons_enabled(True))
                 self.worker.start()
 
+    def load_existing_threads_analysis(self):
+        """Cargar análisis de hilos existentes sin procesar chats nuevos"""
+        print("🧵 Cargando análisis de hilos existentes...")
+        
+        # Buscar todos los archivos de análisis en threads_analysis_results/
+        import glob
+        analysis_files = glob.glob("threads_analysis_results/*_analysis.json")
+        
+        if not analysis_files:
+            QMessageBox.warning(
+                self, 
+                "Análisis Completo", 
+                "No se encontraron archivos de análisis existentes. Por favor, selecciona chats para analizar."
+            )
+            return
+        
+        print(f"📊 Encontrados {len(analysis_files)} archivos de análisis")
+        
+        # Construir resultados leyendo los archivos existentes
+        results = {
+            "archivos_procesados": len(analysis_files),
+            "archivos_totales": len(analysis_files),
+            "resultados_detallados": {},
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        for analysis_file in analysis_files:
+            try:
+                # Obtener el nombre base del archivo (sin _analysis.json)
+                base_name = os.path.basename(analysis_file).replace('_analysis.json', '')
+                print(f"📖 Leyendo análisis: {base_name}")
+                
+                # Cargar archivo de análisis
+                with open(analysis_file, 'r', encoding='utf-8') as f:
+                    analysis_data = json.load(f)
+                
+                # Cargar archivo de hilos para contar hilos
+                threads_file = analysis_file.replace('_analysis.json', '_threads.json')
+                threads_count = 0
+                if os.path.exists(threads_file):
+                    with open(threads_file, 'r', encoding='utf-8') as f:
+                        threads_data = json.load(f)
+                        threads_count = len(threads_data.get('threads', {}))
+                
+                # Cargar archivo de grafo para obtener metadata
+                graph_file = analysis_file.replace('_analysis.json', '_graph.json')
+                graph_info = {}
+                if os.path.exists(graph_file):
+                    with open(graph_file, 'r', encoding='utf-8') as f:
+                        graph_data = json.load(f)
+                        graph_info = {
+                            'total_nodos': len(graph_data.get('nodes', {})),
+                            'total_aristas': len(graph_data.get('edges', [])),
+                            'metadata': graph_data.get('metadata', {})
+                        }
+                
+                # Construir resultado para este archivo
+                results["resultados_detallados"][f"{base_name}.json"] = {
+                    "graph_info": graph_info,
+                    "threads_count": threads_count,
+                    "analysis_summary": {
+                        "total_hilos": analysis_data.get('thread_metrics', {}).get('total_threads', 0),
+                        "hilo_promedio": analysis_data.get('thread_metrics', {}).get('avg_thread_length', 0),
+                        "usuarios_activos": len(analysis_data.get('user_engagement', {}).get('most_active_users', [])),
+                        "patrones_detectados": analysis_data.get('conversation_patterns', {}).get('total_conversation_patterns', 0)
+                    }
+                }
+                
+                print(f"✅ Procesado: {base_name} - {threads_count} hilos")
+                
+            except Exception as e:
+                print(f"❌ Error procesando {analysis_file}: {e}")
+                continue
+        
+        # Mostrar la ventana de resultados
+        print("🪟 Abriendo ventana de resultados...")
+        try:
+            self.threads_results_window = ThreadsAnalysisResults(results, self)
+            self.threads_results_window.show()
+            self.threads_results_window.raise_()
+            self.threads_results_window.activateWindow()
+            print("✅ Ventana de resultados abierta correctamente")
+        except Exception as e:
+            print(f"❌ Error abriendo ventana de resultados: {e}")
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"No se pudo abrir la ventana de resultados: {str(e)}"
+            )
+    
+    def show_threads_progress_dialog(self):
+        """Mostrar diálogo de progreso para análisis de hilos"""
+        self.threads_progress_dialog = QDialog(self)
+        self.threads_progress_dialog.setWindowTitle("🔮 Construyendo Grafo de Conocimiento")
+        self.threads_progress_dialog.setWindowIcon(QIcon("telegram_icon.png"))
+        self.threads_progress_dialog.setModal(True)
+        self.threads_progress_dialog.setFixedSize(500, 400)
+        
+        layout = QVBoxLayout(self.threads_progress_dialog)
+        
+        # Título y descripción
+        title = QLabel("<h3 style='color: #2C6E91;'>Construyendo Grafo de Conocimiento</h3>")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title)
+        
+        description = QLabel(
+            "El sistema está analizando las conversaciones para reconstruir hilos...\n\n"
+            "📊 Procesando:\n"
+            "• Conexiones entre mensajes\n"
+            "• Intenciones de conversación\n" 
+            "• Patrones temporales\n"
+            "• Relaciones sociales\n\n"
+            "⏰ Esto puede tomar varios minutos dependiendo del tamaño del chat"
+        )
+        description.setWordWrap(True)
+        description.setStyleSheet("background-color: #f8f9fa; padding: 15px; border-radius: 10px;")
+        layout.addWidget(description)
+        
+        # Spinner de carga
+        spinner_label = QLabel("🔄 Procesando archivos...")
+        spinner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        spinner_label.setStyleSheet("font-size: 14px; color: #6c757d; padding: 20px;")
+        layout.addWidget(spinner_label)
+        
+        # Botón para cancelar
+        cancel_btn = QPushButton("Cerrar")
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                padding: 10px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+        """)
+        cancel_btn.clicked.connect(self.cancel_threads_analysis)
+        layout.addWidget(cancel_btn)
+        
+        # Centrar en la pantalla
+        screen_geometry = QApplication.primaryScreen().availableGeometry()
+        self.threads_progress_dialog.move(
+            screen_geometry.center() - self.threads_progress_dialog.rect().center()
+        )
+        
+        self.threads_progress_dialog.show()
+
+    def cancel_threads_analysis(self):
+        """Cancelar el análisis de hilos (solo cierra el diálogo)"""
+        if hasattr(self, 'threads_progress_dialog') and self.threads_progress_dialog:
+            try:
+                self.threads_progress_dialog.close()
+                self.threads_progress_dialog = None
+            except:
+                pass
+    
     def set_analysis_buttons_enabled(self, enabled):
         self.total_analysis_btn.setEnabled(enabled)
         self.important_info_btn.setEnabled(enabled)
