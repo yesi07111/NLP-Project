@@ -8,7 +8,8 @@ old_code
 p.md
 *.session
 *.session-journal
-models
+output
+embedding_cache
 train_data_info.md
 
 
