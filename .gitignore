@@ -491,3 +491,5 @@ media_*
 _cache
 .vscode
 .venv
+
+results

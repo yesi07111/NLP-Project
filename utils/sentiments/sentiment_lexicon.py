@@ -32,7 +32,7 @@ POSITIVE_WORDS = {
     "apreciar": 1.1, "aprecio": 1.1, "aprecias": 1.1, "aprecia": 1.1,
     "recomendar": 1.3, "recomiendo": 1.3, "recomiendas": 1.3, "recomienda": 1.3,
     "shippear": 1.5, "apoyar": 1.2, "apoyo": 1.2,
-    "stan": 1.5, "dar apoyo": 1.3, "tener": 1.2,
+    "stan": 1.5, "dar apoyo": 1.3, "tener": 1.2, "recibir": 1.5, "superar": 1.5,
     
     # Nuevos verbos de chats
     "like": 1.2, "likear": 1.2, "mencionar": 0.8, "mention": 0.8,
@@ -79,7 +79,7 @@ NEGATIVE_WORDS = {
     "pobre": -1.1, "pobres": -1.1,
     "noob": -1.2, "nuevo": -0.5, "tóxico": -1.5, "toxica": -1.5,
     "cringe": -1.3, "cringy": -1.3, "fail": -1.4,
-    "fula": -1.3, "falso": -1.4, "fake": -1.4,
+    "fula": -1.3, "falso": -1.4, "fake": -1.4, "falta" : -1.5,
     
     # Verbos negativos
     "odiar": -1.6, "odio": -1.6, "odias": -1.6, "odia": -1.6,
@@ -89,7 +89,7 @@ NEGATIVE_WORDS = {
     "fallar": -1.2, "fallo": -1.2, "fallas": -1.2, "falla": -1.2,
     "ghostear": -1.3, "bloquear": -1.0, "block": -1.0,
     "hatear": -1.5, "trollear": -1.4, "troll": -1.4,
-    "matar": -1.5, "molestar": -1.2, "tirar": -0.8,
+    "matar": -1.5, "molestar": -1.2, "tirar": -0.8, "faltar" : -1.5,
     
     # Nuevos verbos de chats
     "saltear": -0.8, "skip": -0.8, "mutear": -1.0, "mute": -1.0,
@@ -127,7 +127,10 @@ INTENSIFIERS = {
     # Intensificadores negativos (reducen la intensidad)
     "poco": 0.5, "ligeramente": 0.7, "levemente": 0.7,
     "algo": 0.8, "medianamente": 0.8, "más o menos": 0.7,
-    "casi": 0.6, "apenas": 0.2, "un poco": 0.6
+    "casi": 0.6, "apenas": 0.2, "un poco": 0.6,
+
+    # Cuantificadores negativos (aumentan la negatividad)
+    "nada": 0,
 }
 
 # Negadores (invierten el sentido de la palabra siguiente)
@@ -136,7 +139,7 @@ NEGATORS = {
     "ningunos", "ningunas", "tampoco", "sin", "ni siquiera", "en mi vida",
     "de ninguna manera", "de ningún modo", "para nada", "en absoluto",
     "de ningún modo", "en lo más mínimo", "bajo ningún concepto",
-    "na", "nah", "nope", "nel", ""
+    "na", "nah", "nope", "nel"
 }
 
 # Expresiones idiomáticas (frases hechas con significado propio)

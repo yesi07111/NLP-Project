@@ -4,6 +4,8 @@ from sklearn.metrics import accuracy_score, precision_recall_fscore_support, con
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sentiment_rules import analyze_sentiment
+import time
+from typing import Optional
 
 def load_test_data(filepath):
     """Load test data from CSV file."""
@@ -37,7 +39,14 @@ def save_results_incrementally(text, prediction, output_file):
             writer.writerow(['texto', 'prediccion'])
         writer.writerow([text, prediction])
 
-def predict_sentiment(texts, output_file='resultados_sentimiento_temp.csv'):
+def predict_sentiment(
+    texts,
+    output_file='resultados_sentimiento_temp.csv',
+    retry_forever: bool = True,
+    max_retries: Optional[int] = None,
+    initial_backoff: float = 1.0,
+    max_backoff: float = 60.0,
+):
     """Predict sentiment for a list of texts using binary classification.
     
     Args:
@@ -55,18 +64,57 @@ def predict_sentiment(texts, output_file='resultados_sentimiento_temp.csv'):
     
     print(f"Found {start_idx} previously processed texts. Resuming from index {start_idx}...")
     
+    def _is_connection_error(exc: Exception) -> bool:
+        msg = str(exc).lower()
+        return isinstance(exc, (ConnectionError, OSError, IOError)) or 'connection' in msg
+
     # Process remaining texts
     for i in range(start_idx, len(texts)):
         text = texts[i]
-        
-        result = analyze_sentiment(text)
-        # Binary classification: positive if score > 0, negative otherwise
-        pred = 1 if result['score'] > 0 else 0
-        pred_labels.append(pred)
-        
-        # Save result immediately
-        save_results_incrementally(text, pred, output_file)        
-          
+
+        attempt = 0
+        backoff = initial_backoff
+
+        while True:
+            try:
+                result = analyze_sentiment(text)
+                # Binary classification: positive if score > 0, negative otherwise
+                pred = 1 if result['score'] > 0 else 0
+                pred_labels.append(pred)
+
+                # Save result immediately
+                save_results_incrementally(text, pred, output_file)
+                break
+
+            except KeyboardInterrupt:
+                # Allow user to cancel
+                raise
+            except Exception as e:
+                # Only retry on connection-related problems
+                if _is_connection_error(e):
+                    attempt += 1
+                    will_retry = retry_forever or (max_retries is not None and attempt <= max_retries)
+                    print(f"[Warning] Error de conexión en el análisis (texto index {i}): {e}")
+                    if not will_retry:
+                        print(f"[Error] Se alcanzó el máximo de reintentos ({max_retries}). Saltando este texto.")
+                        pred_labels.append(None)
+                        break
+
+                    # Sleep with exponential backoff
+                    sleep_time = min(backoff, max_backoff)
+                    print(f"Reintentando en {sleep_time:.1f}s (intento {attempt})...")
+                    try:
+                        time.sleep(sleep_time)
+                    except KeyboardInterrupt:
+                        raise
+                    backoff *= 2
+                    continue
+                else:
+                    # Non-connection error: log and append None to keep indices aligned
+                    print(f"[Error] Error al analizar el texto index {i}: {e}")
+                    # pred_labels.append(None)
+                    # break
+
     return pred_labels
 
 def evaluate(true_labels, pred_labels):

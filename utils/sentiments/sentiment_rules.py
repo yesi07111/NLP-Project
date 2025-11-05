@@ -8,7 +8,9 @@ from sentiment_lexicon import (
     NEGATIVE_WORDS
 )
 from pprint import pprint
-
+from googletrans import Translator
+from nltk.corpus import sentiwordnet as swn
+translator = Translator()
 
 nlp = spacy.load("es_core_news_md")
 
@@ -16,37 +18,66 @@ nlp = spacy.load("es_core_news_md")
 #  FUNCIONES AUXILIARES DE DEPENDENCIAS
 # ================================================================
 
+# def has_negation(token):
+#     """
+#     Verifica si un token está afectado por una negación.
+#     Busca en:
+#       - Hijos inmediatos (token.children)
+#       - Ancestros hasta 3 niveles
+#       - Tokens a la izquierda (lefts)
+#       - Subárbol local
+#     """
+#     for child in token.children:
+#         if child.text.lower() in NEGATORS:
+#             return True
+
+#     # Buscar en ancestros hasta 3 niveles
+#     ancestor = token.head
+#     for _ in range(3):
+#         if not ancestor or ancestor == token:
+#             break
+#         if ancestor.text.lower() in NEGATORS:
+#             return True
+#         ancestor = ancestor.head
+
+#     # Buscar tokens a la izquierda inmediata
+#     for left in token.lefts:
+#         if left.text.lower() in NEGATORS:
+#             return True
+
+#     # Buscar en el subárbol (por ejemplo “no me gusta nada”)
+#     for sub in token.subtree:
+#         if sub.text.lower() in NEGATORS:
+#             return True
+
+#     return False
+
 def has_negation(token):
     """
-    Verifica si un token está afectado por una negación.
-    Busca en:
-      - Hijos inmediatos (token.children)
-      - Ancestros hasta 3 niveles
-      - Tokens a la izquierda (lefts)
-      - Subárbol local
+    Nueva versión (NO propagativa).
+    La negación aplica SOLO si:
+      - El token tiene un hijo negador (no, nunca, jamas)
+      - O el token depende de un verbo que tiene un negador directo
+    NO revisa el subárbol completo.
+    NO revisa lefts arbitrarios.
+    NO sube varios niveles.
     """
+    # 1. Negación sobre el propio token (caso ideal)
     for child in token.children:
-        if child.text.lower() in NEGATORS:
+        if child.lemma_.lower() in NEGATORS and child.dep_ == "advmod":
             return True
 
-    # Buscar en ancestros hasta 3 niveles
-    ancestor = token.head
-    for _ in range(3):
-        if not ancestor or ancestor == token:
-            break
-        if ancestor.text.lower() in NEGATORS:
-            return True
-        ancestor = ancestor.head
-
-    # Buscar tokens a la izquierda inmediata
-    for left in token.lefts:
-        if left.text.lower() in NEGATORS:
-            return True
-
-    # Buscar en el subárbol (por ejemplo “no me gusta nada”)
-    for sub in token.subtree:
-        if sub.text.lower() in NEGATORS:
-            return True
+    # 2. "no + verbo" afecta objetos del verbo
+    #    ej: "no resolvió mi problema" -> problema NO es negable
+    #    pero resolvió sí lo es
+    if token.head and token.head.pos_ == "VERB":
+        for child in token.head.children:
+            if child.lemma_.lower() in NEGATORS and child.dep_ == "advmod":
+                # Verbo negado, pero no negamos el objeto ni sus modificadores
+                if token.pos_ == "VERB":
+                    return True
+                else:
+                    return False
 
     return False
 
@@ -285,6 +316,40 @@ def rule_visitado_cerrado(token):
 
     return 0
 
+def rule_nada_bueno_pattern(token):
+    """
+    Maneja patrones del tipo:
+    - 'nada bueno'
+    - 'nada interesante'
+    - 'nada positivo'
+    - 'no puedo decir nada bueno'
+    Si 'nada' modifica a un adjetivo positivo → sentimiento muy negativo.
+    """
+
+    # Caso 1: token == 'nada' y tiene hijo ADJ evaluativo
+    if token.lemma_ == "nada":
+        for child in token.children:
+            if child.pos_ == "ADJ" and child.lemma_.lower() in POSITIVE_WORDS:
+                return -2.5
+
+    # Caso 2: token es ADJ con hijo 'nada'
+    if token.pos_ == "ADJ":
+        for child in token.children:
+            if child.lemma_ == "nada":
+                # invertir la polaridad del adjetivo positivo
+                base = POSITIVE_WORDS.get(token.lemma_.lower(), 1)
+                return -2.0 * abs(base)
+
+    # Caso 3: 'nada' en el subtree del adjetivo (frases largas)
+    subtree_lemmas = {t.lemma_ for t in token.subtree}
+    if token.pos_ == "ADJ" and token.lemma_.lower() in POSITIVE_WORDS:
+        if "nada" in subtree_lemmas:
+            return -2.0 * abs(POSITIVE_WORDS[token.lemma_.lower()])
+
+    return 0
+
+
+
 def apply_grammatical_rules(token, base_score, debug_info):
     """
     Aplica reglas gramaticales (dependientes del árbol de dependencias)
@@ -322,6 +387,7 @@ def apply_grammatical_rules(token, base_score, debug_info):
         (rule_no_lograr, "no_lograr"),
         (rule_decepcionante_bastante, "decepcionante_bastante"),
         (rule_visitado_cerrado, "visitado_cerrado"),
+        (rule_nada_bueno_pattern, "nada_bueno_pattern"),
         ]:
 
         adjustment = rule_fn(token)
@@ -336,7 +402,7 @@ def apply_grammatical_rules(token, base_score, debug_info):
 #  FUNCIÓN PRINCIPAL DE ANÁLISIS
 # ================================================================
 
-def analyze_sentiment(text, debug=True):
+def _analyze_sentiment(text, debug=True):
     """
     Analiza el sentimiento de un texto aplicando reglas basadas en dependencias.
     Devuelve un diccionario con el puntaje y, si debug=True, los detalles.
@@ -388,6 +454,121 @@ def analyze_sentiment(text, debug=True):
     else:
         return polarity
 
+# ================================================================
+#  NUEVO ANALIZADOR BASADO EN EL ÁRBOL (POSTORDER)
+# ================================================================
+
+def compute_subtree_sentiment(token, visited, debug):
+    """
+    Evalúa el sentimiento de un subárbol completo usando un recorrido postorder.
+    Retorna el score del subárbol.
+    
+    visited evita que un token se procese varias veces.
+    """
+
+    if token.i in visited:
+        return 0.0
+    visited.add(token.i)
+
+    # --- 1. Recorrer hijos primero (POSTORDER) ---
+    child_scores = []
+    for child in token.children:
+        child_scores.append(compute_subtree_sentiment(child, visited, debug))
+
+    # --- 2. Procesar el propio token ---
+    lemma = token.lemma_.lower()
+    base_score = 0.0
+
+    if lemma in LEXICON:
+        base_score = LEXICON[lemma]
+
+        # Aplicar reglas gramaticales (las mismas funciones que ya tienes)
+        adjusted = apply_grammatical_rules(token, base_score, debug)
+        token_score = adjusted
+    else:
+        # translated = translator.translate(lemma, src='es', dest='en').text.lower()
+        # synsets = list(swn.senti_synsets(translated))
+        # if synsets:
+        #     synset = synsets[0]  # Usa el synset más común
+        #     net_score = synset.pos_score() - synset.neg_score()
+        #     base_score = net_score * 0.5  # Escala para no dominar el léxico local
+        #     adjusted = apply_grammatical_rules(token, base_score, debug)
+        #     token_score = adjusted
+        # else:
+        token_score = 0.0
+
+    # --- 3. Fusionar hijos con el token (promedio ponderado simple) ---
+    if child_scores:
+        # Unimos el sentimiento del token con sus hijos
+        fused = token_score + sum(child_scores)
+    else:
+        fused = token_score
+
+    return fused
+
+def analyze_sentence_tree(sent):
+    """
+    Evalúa una oración usando análisis basado en el árbol de dependencias.
+    """
+    # Obtener el ROOT (la cabeza de la oración)
+    root = [t for t in sent if t.dep_ == "ROOT"]
+    if not root:
+        return 0.0, []
+
+    root = root[0]
+
+    debug = []
+    visited = set()
+
+    score = compute_subtree_sentiment(root, visited, debug)
+
+    # Manejar cláusulas adversativas ("pero", "aunque", etc.)
+    has_adv, conj = detect_adversative_clauses(sent)
+    if has_adv:
+        mult = ADVERSATIVE_CONJUNCTIONS.get(conj, 1.0)
+        score *= mult
+        debug.append(f"adversative({conj}, x{mult})")
+
+    return score, debug
+
+def analyze_sentiment(text, debug=True):
+    """
+    VERSIÓN PARALELA:
+    Analiza sentimiento usando recorrido postorder del árbol.
+    NO reemplaza la versión original.
+    """
+    doc = nlp(text)
+    total_score = 0.0
+    details = []
+
+    for sent in doc.sents:
+        sent_score, sent_debug = analyze_sentence_tree(sent)
+
+        total_score += sent_score
+        details.append({
+            "sentence": sent.text.strip(),
+            "score": round(sent_score, 3),
+            "rules": sent_debug
+        })
+
+    polarity = (
+        "positivo" if total_score > 0
+        else "negativo" if total_score < 0
+        else "neutro"
+    )
+
+    if debug:
+        return {
+            "text": text,
+            "score": round(total_score, 3),
+            "sentiment": polarity,
+            "details": details
+        }
+    else:
+        return polarity
+
+
+
 if __name__ == "__main__":
     examples = [
         # "Me gusta mucho esto, es excelente 👍",
@@ -404,13 +585,20 @@ if __name__ == "__main__":
         # "La visita guiada al sitio arqueológico fue educativa y emocionante, el guía explicaba cada detalle con gran entusiasmo y conocimiento.",
         # "La conferencia educativa a la que asistí fue inspiradora, los ponentes eran expertos en su área y brindaron conocimientos muy valiosos.",
         # "El museo tenía pocas exposiciones abiertas y la mayoría estaban en malas condiciones, fue una experiencia frustrante para los visitantes.",
-        # "No puedo decir nada bueno de ti",
         # "No disfruté el festival, la programación fue monótona y poco atractiva.",
         # "No disfruté el festival pero la comida estuvo excelente",
         # "La calidad de las presentaciones fue baja.",
-        "No tener problemas",
-
+        # "No tener problemas",
+        # "El servicio al cliente fue pésimo y no resolvió mi problema."
+        # "No puedo decir nada bueno de ti",
+        # "Nada bueno",
+        # "Nada insteresante",
+        # "No tienes ningun producto de calidad",
+        # "Nada insteresante",
+        # "La obra de teatro superó todas mis expectativas."
+        "Los profesores están muy capacitados y comprometidos."
+         
     ]
     for ex in examples:
-        analyse = analyze_sentiment(ex, True)
-        print(ex, "->",analyse )
+        print(ex, "\n --> ",analyze_sentiment(ex, True), "\n\n")
+
