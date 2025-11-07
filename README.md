@@ -1,7 +1,7 @@
 # 🤖 Proyecto NLP — Cliente Telegram para exportar chats
 
 ## 🧠 Resumen
-Este proyecto es una herramienta de **Procesamiento del Lenguaje Natural (NLP)** que funciona como cliente de Telegram. Permite iniciar sesión con una cuenta, seleccionar chats/grupos y descargar los mensajes en un formato **estructurado (JSON)** para análisis posterior. Es posible filtrar por rango de fechas y elegir si descargar contenidos multimedia (imágenes, audios, documentos).
+Este proyecto es una herramienta de **Procesamiento del Lenguaje Natural (NLP)** que funciona como cliente de Telegram. Permite iniciar sesión con una cuenta, seleccionar chats/grupos y descargar los mensajes en un formato **estructurado (JSON)** para análisis posterior. Es posible filtrar por rango de fechas y elegir si descargar contenidos multimedia (imágenes, audios, documentos). Incluye capacidades de **análisis de sentimientos**, **sustitución inteligente de enlaces**, y **reconstrucción de hilos de conversación** usando machine learning.
 
 ---
 
@@ -11,6 +11,10 @@ Este proyecto es una herramienta de **Procesamiento del Lenguaje Natural (NLP)**
 - 📅 Filtrar por rango de fezas.  
 - ✅ Seleccionar tipos de medios a descargar: imágenes, audio, documentos.  
 - 🗂️ Guardar los mensajes y metadatos en un archivo `JSON` por chat, y los archivos multimedia en carpetas `media_<nombre_del_chat>`.
+- 💬 **Análisis de sentimientos** integrado
+- 🔗 **Sustitución inteligente de enlaces** con más de 20 plataformas soportadas
+- 📊 **Grafo de conocimiento** para análisis de conversaciones
+- 🧵 **Reconstrucción de hilos** con modelos de ML especializados a partir del grafo de conocimiento.
 
 ---
 
@@ -97,45 +101,104 @@ Al decidir descargar los medios, cada mensaje puede contener un objeto `media` c
 
 Actualmente existe un preprocesamiento centrado en:
 
-1. **Sustitución de enlaces**
 
-   * Utilizar expresiones regulares para localizar URLs y sustituirlas por descripciones contextualizadas (ej. `[Video de YouTube]`, `[Reel de Instagram]`, `[Invitación a grupo de Telegram]`, `[Enlace externo]`, etc.).
-   * Esto evita que URLs largas ensucien el texto y facilita el análisis semántico.
+### 1. **🔗 Sustitución Inteligente de Enlaces**
+Utilizamos el proyecto **`link_replacement/`** que contiene un sistema avanzado de extractores para más de 20 plataformas:
 
-2. **Markdown → Texto plano**
+```python
+from link_processor.main import LinkProcessor
+
+processor = LinkProcessor()
+texto_limpio = re.sub(r'https?://[^\s]+', processor.replace_link, texto)
+```
+
+**Ejemplos de transformación:**
+- `https://youtube.com/watch?v=abc123` → `[📹 Video de YouTube - ID: abc123]`
+- `https://amazon.com/dp/B08N5WRWNW` → `[🛒 Producto de Amazon - ID: B08N5WRWNW]`
+- `https://instagram.com/p/Cxample123/` → `[📸 Post de Instagram]`
+
+**Características:**
+- 🎯 **+20 plataformas** soportadas (redes sociales, tiendas, herramientas)
+- 📁 **Detección de archivos** (imágenes, videos, documentos)
+- 🎨 **Emojis específicos** por tipo de contenido
+- 🔧 **Extractores modulares** fáciles de extender
+
+  
+  * Esto evita que URLs largas ensucien el texto y facilita el análisis semántico.
+  * 
+### 2. **Markdown → Texto plano**
 
    * Los mensajes con formato Markdown (negritas, cursivas, listas) se transforman a HTML con `markdown.markdown(...)`.
    * Luego `BeautifulSoup` analiza ese HTML y extrae el texto plano con `soup.get_text(...)`.
    * Esto preserva el contenido semántico (texto) y elimina etiquetas de formato.
 
-3. **Preservación de emojis y reacciones**
+### 3. **Preservación de emojis y reacciones**
 
    * Los emojis permanecen en el campo `text`. Las reacciones se guardan en `reactions` como un objeto con recuentos por emoji.
 
-4. **Saneamiento de nombres de archivo**
+### 4. **🔄 Análisis de Sentimientos Integrado**
+El sistema incluye análisis de sentimientos en tiempo real:
 
-   * Para almacenar medios en disco se construyen nombres seguros (se reemplazan caracteres inválidos para el sistema de archivos).
+```python
+from utils.sentiment_analysis import analyze_sentiment
 
-> Ejemplo de flujo (función `clean_message_text`):
+sentimiento = analyze_sentiment("¡Me encanta este proyecto!")
+# Resultado: {'score': 0.9, 'label': 'positive', 'confidence': 0.95}
+```
+
+**Módulos de sentimiento:**
+- `evaluate_sentiment` - Evaluación de modelos
+- `sentiment_analysis` - Análisis principal
+- `sentiment_lexicon` - Diccionarios en español
+- `sentiment_rules` - Reglas contextuales
+- `text_processing` - Preprocesamiento especializado
+
+---
+
+> Ejemplo de flujo de preprocesamiento ( `utils/text_processing.py`):
 >
-> * Detectar y reemplazar URLs → `replace_link(...)`.
+> * Detectar y reemplazar URLs → `LinkProcessor(...)`.
 > * Convertir Markdown a HTML → `markdown.markdown(...)`.
 > * Extraer texto limpio → `BeautifulSoup(...).get_text(...)`.
 > * Devolver texto ya normalizado y sin URLs crudas.
 
 ---
 
-## 🌳 Árbol de conocimiento / reconstrucción de hilos (planificado)
 
-Próximamente se integrará una capa que permita **reconstruir hilos de conversación** incluso cuando Telegram no indique explícitamente a qué mensaje responde un texto. La idea:
+## 🌳 Reconstrucción de Hilos de Conversación
 
-* Analizar **secuencia temporal**, menciones, palabras clave y proximidad semántica.
-* Construir un **grafo/árbol** donde los nodos sean mensajes y las aristas representen relaciones de respuesta o continuidad temática.
-* Utilizarlo para: reconstruir hilos, agrupar subconversaciones, extraer temas y facilitar resúmenes automáticos.
+### 🚀 **Proyecto `threads_analysis/`**
+Sistema avanzado para detectar relaciones implícitas entre mensajes usando **tres modelos especializados** de machine learning:
 
-Esto permitirá **restaurar contextos** en chats donde las referencias implícitas están fragmentadas.
+#### 🎯 **Arquitectura de Modelos**
+1. **Bi-Encoder A** 🏎️ - `paraphrase-multilingual-mpnet-base-v2`
+2. **Bi-Encoder B** ⚡ - `sentence-transformers/all-MiniLM-L12-v2`  
+3. **Cross-Encoder** 🎯 - `cross-encoder/ms-marco-MiniLM-L-12-v2`
 
----
+#### 🔄 **Pipeline Completo**
+```mermaid
+graph TD
+    A[📁 Chats Telegram] --> B[🛠️ Dataset Builder]
+    B --> C[📊 Dataset Enriquecido]
+    C --> D[🤖 Triple Model Trainer]
+    D --> E[📈 K-Fold Training]
+    E --> F[🏆 Mejor Modelo]
+    F --> G[📤 Exportación ONNX]
+    G --> H[🧪 Evaluación]
+```
+
+#### 🎯 **Casos de Uso**
+```
+Usuario A: "¿Alguien quiere pizza?"          🎯
+Usuario B: "¡Yo sí! Con pepperoni"           ✅ Respuesta detectada
+Usuario C: "Acabo de almorzar"               ✅ Respuesta detectada  
+Usuario D: "Hoy hace buen día"               ❌ No relacionado
+```
+
+**Ejecución:**
+```bash
+python threads_analysis/models/pipeline_runner.py
+```
 
 ## ⚙️ Ejecución (guía rápida)
 
@@ -157,18 +220,74 @@ python main.py
 
 ## 🗂️ Organización de archivos (resumen)
 
-* `main.py` → punto de entrada.
-* `telegram/` → lógica del cliente y worker (Telethon).
-* `ui/` → interfaz PyQt (ventanas, widgets, diálogos).
-* `utils/` → utilidades: `sanitize_filename`, análisis, caché, etc.
-* `media_<chat_name>/` → carpetas donde se guardan imágenes, audio y documentos descargados.
-* `output/<chat_name>_<start>_<end>.json` → JSON resultante por chat.
+```
+proyecto_nlp/
+├── main.py                          # 🎯 Punto de entrada principal
+├── telegram/                        # 🔐 Cliente y worker de Telegram
+├── ui/                              # 🖼️ Interfaz PyQt
+├── utils/                           # 🛠️ Utilidades avanzadas
+│   ├── evaluate_sentiment.py        # 📊 Evaluación de modelos de sentimiento
+│   ├── sentiment_analysis.py        # 💬 Análisis principal de sentimientos
+│   ├── sentiment_lexicon.py         # 📚 Diccionarios en español
+│   ├── sentiment_rules.py           # ⚙️ Reglas contextuales
+│   ├── text_processing.py           # 🔄 Preprocesamiento especializado
+│   └── parse_url.py                 # 🔗 Utilidades para URLs
+├── link_replacement/                # 🔗 Sistema de sustitución de enlaces
+│   ├── main.py                      # 🎯 Procesador principal
+│   ├── file_detector.py             # 📁 Detector de tipos de archivo
+│   ├── extractors/                  # 🏗️ +20 extractores de plataformas
+│   └── utils/constants.py           # 🎨 Emojis y configuraciones
+├── threads_analysis/                # 🧵 Reconstrucción de hilos con ML
+│   ├── knowledge_graph.py           # 🌳 Grafo de conocimiento
+│   ├── models/                      # 🤖 Modelos de machine learning
+│   └── main.py                      # 🚀 Procesamiento de chats
+├── media_<chat_name>/               # 🖼️ Archivos multimedia descargados
+└── threads_analysis_results
+    ├── chats/                        # 📦 JSONs generados por chat
+    ├── train_chats/                  # 📦 JSONs de chats a usar para entrenar los modelos de ML
+    ├── *chat_name*_analysis.json     # 📊 Análisis del chat (métricas de los hilos, user engagement, etc)
+    ├── *chat_name*_graph.json        # 🕸️ Representación en json del grafo de conocimiento del chat
+    └── *chat_name*_threads.json      # 🧵 Hilos de conversación del chat
+
+```
+---
+
+
+## 📊 Salidas y Resultados
+
+### ✅ **JSON Estructurado**
+- Metadatos completos del chat
+- Mensajes con análisis de sentimientos
+- Multimedia organizado
+- Reacciones y menciones
+
+### 🎯 **Análisis de Sentimientos**
+- Puntuaciones por mensaje
+- Tendencias temporales
+- Análisis por usuario
+- Confianza en predicciones
+
+### 🔗 **Enlaces Procesados**
+- Descripciones legibles
+- Categorización por plataforma
+- Información contextual
+- Emojis representativos
+
+### 🧵 **Hilos Reconstruidos**
+- Relaciones implícitas detectadas
+- Estructura de conversaciones
+- Métricas de engagement
+- Análisis de flujos
 
 ---
 
-## 📝 Notas finales
+## 📝 Notas Técnicas
 
-* El JSON y la organización de medios están diseñados para **hacer reproducible y sencillo el pipeline de análisis**.
-* El preprocesamiento actual es deliberadamente conservador: prioriza mantener el contenido legible y sustituir elementos ruidosos (URLs largos) por descriptores útiles para NLP.
+- El preprocesamiento prioriza **legibilidad** y **análisis semántico**
+- Los modelos de ML están **optimizados para español**
+- Sistema modular fácil de **extender y personalizar**
+- Outputs diseñados para **análisis reproducible**
 
----
+**¿Listo para analizar tus conversaciones de Telegram?** 🚀
+
+*El proyecto combina técnicas avanzadas de NLP con una interfaz amigable, haciendo accesible el análisis de conversaciones a usuarios técnicos y no técnicos.*

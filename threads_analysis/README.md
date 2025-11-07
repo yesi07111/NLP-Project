@@ -25,11 +25,11 @@ Un sistema avanzado para detectar relaciones de respuesta implícitas entre mens
 
 ### 🤔 **¿Por qué Tres Modelos?**
 
-| Modelo | Velocidad | Precisión | Caso de Uso |
-|--------|-----------|-----------|-------------|
-| Bi-Encoder A | 🟡 Media | 🟢 Alta | Búsqueda semántica multilingüe |
-| Bi-Encoder B | 🟢 Alta | 🟡 Media | Filtrado rápido y eficiente |
-| Cross-Encoder | 🔴 Baja | 🟢 Máxima | Decisión final en casos ambiguos |
+| Modelo        | Velocidad | Precisión | Caso de Uso                      |
+| ------------- | --------- | --------- | -------------------------------- |
+| Bi-Encoder A  | 🟡 Media   | 🟢 Alta    | Búsqueda semántica multilingüe   |
+| Bi-Encoder B  | 🟢 Alta    | 🟡 Media   | Filtrado rápido y eficiente      |
+| Cross-Encoder | 🔴 Baja    | 🟢 Máxima  | Decisión final en casos ambiguos |
 
 ---
 
@@ -55,6 +55,7 @@ graph TD
 
 ```
 threads_analysis/
+├── main.py                         # 🏠 Punto de entrada para procesar chats y crear su grafo
 ├── knowledge_graph.py              # 🔍 Construcción del grafo + heurísticas reply implícito
 ├── models/
 │   ├── dataset_builder.py          # 🏗️ Construye dataset con hard negatives
