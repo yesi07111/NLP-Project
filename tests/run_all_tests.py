@@ -9,7 +9,7 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from regex_tester import RegexTester
+from pattern_analyzer_tester import PatternAnalyzerTester
 
 def main():
     """
@@ -69,12 +69,12 @@ def main():
     for group in groups_to_run:
         print(f"🔹 Ejecutando grupo de tests: {group}")
         if group == "regex":
-            tester = RegexTester(verbose=verbose)
+            tester = PatternAnalyzerTester(verbose=verbose)
             tester.run_all_tests()
             tester.print_summary()
         elif group == "link-r":
-            from link_replacement_tester import LinkReplacementTester
-            tester = LinkReplacementTester(verbose=verbose)
+            from link_replacement_tests.plataform_tester import PlatformTester
+            tester = PlatformTester(verbose=verbose)
             tester.run_all_tests()
             tester.print_summary()
         else:

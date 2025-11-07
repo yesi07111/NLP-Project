@@ -42,7 +42,6 @@ class PlatformTester(Tester):
             TwitterTester(verbose),
             WhatsAppTester(verbose),
             YouTubeTester(verbose),
-            AmazonTester(verbose),
             DiscordTester(verbose),
             FacebookTester(verbose),
             GitHubTester(verbose),

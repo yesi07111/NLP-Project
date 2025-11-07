@@ -157,16 +157,13 @@ class AmazonTester(Tester):
                     success = expected == result
                     match_info = f"Esperado: {expected}"
                 else:
-                    # Fallback para casos no definidos
-                    success = "Amazon" in result and "[" in result and "]" in result
-                    match_info = "Verificación genérica"
+                    success = False
                 
                 details = {
                     'URL': url,
                     'Descripción': description,
                     'Resultado': result,
                     'Esperado': expected if expected else "N/A",
-                    'Coincide': match_info,
                     'Éxito': "SÍ" if success else "NO"
                 }
                 
