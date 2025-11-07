@@ -8,9 +8,11 @@ old_code
 p.md
 *.session
 *.session-journal
-output
+best
+fold_*
 embedding_cache
-train_data_info.md
+paraphrase-multilingual-mpnet-base-v2
+
 
 
 # dotenv files
@@ -495,6 +497,7 @@ $RECYCLE.BIN/
 
 # Custom
 *.json
+!meta.json
 *.html
 media_*
 *.session
