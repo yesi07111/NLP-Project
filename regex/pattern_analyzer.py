@@ -336,14 +336,3 @@ def calculate_conversation_metrics(messages: List[Dict]) -> Dict:
     metrics["most_active_categories"] = [{"category": cat, "count": count} for cat, count in sorted_categories]
     
     return metrics
-
-# Funciones de compatibilidad para mantener el codigo existente
-def extract_advanced_patterns(text: str) -> dict:
-    """Funcion de compatibilidad - usa extract_regex_patterns"""
-    from regex_extractor import extract_regex_patterns
-    return extract_regex_patterns(text)
-
-def analyze_message_patterns(text: str) -> str:
-    """Funcion de compatibilidad - usa analyze_text_patterns"""
-    from regex_extractor import analyze_text_patterns
-    return analyze_text_patterns(text)
