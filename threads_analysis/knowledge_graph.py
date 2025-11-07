@@ -1,4 +1,4 @@
-# knowledge_graph/graph_builder.py
+# threads_analysis/knowledge_graph.py
 import json
 import networkx as nx
 import spacy
