@@ -7,7 +7,7 @@ from ..utils.constants import EMOJI_MAPS
 
 @register_extractor
 class AmazonExtractor(BaseExtractor):
-    DOMAINS = ['amazon.com', 'amazon.', 'business.amazon.com', 'www.amazon.com']
+    DOMAINS = ['amazon.com', 'amazon.', 'business.amazon.com', 'www.amazon.com', 'amazon.com.mx']
     SITE_NAME = 'Amazon'
     
     # Patrones regex para diferentes tipos de URLs de Amazon

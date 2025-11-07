@@ -23,8 +23,9 @@ class GoogleExtractor(BaseExtractor):
         'artsandculture.google.com', 'lens.google.com', 'assistant.google.com',
         'myaccount.google.com', 'takeout.google.com', 'one.google.com',
         'fi.google.com', 'voice.google.com', 'duo.google.com',
-        'goo.gl', 'g.co'
+        'goo.gl', 'g.co', 'translate.google.com', 'contacts.google.com'
     ]
+
     SITE_NAME = 'Google'
 
     def extract(self, parsed_url, domain: str) -> Optional[Dict[str, Any]]:
@@ -32,21 +33,21 @@ class GoogleExtractor(BaseExtractor):
         query_params = parse_qs(parsed_url.query)
         host = parsed_url.netloc.lower()
         fragment = parsed_url.fragment
-        
+
         # Determinar el servicio principal
         service = "search"
         content_type = "search"
         content_id = ""
         query = query_params.get('q', [''])[0]
-        
+
         # Mapeo de servicios por host - MEJORADO para manejar subdominios
         service_map = {
             'drive.google.com': 'drive',
-            'docs.google.com': 'docs', 
+            'docs.google.com': 'docs',
             'mail.google.com': 'gmail',
             'gmail.com': 'gmail',
             'maps.google.com': 'maps',
-            'google.com/maps': 'maps',  # Para URLs como google.com/maps/...
+            'google.com/maps': 'maps',
             'photos.google.com': 'photos',
             'calendar.google.com': 'calendar',
             'meet.google.com': 'meet',
@@ -64,17 +65,22 @@ class GoogleExtractor(BaseExtractor):
             'goo.gl': 'short_url',
             'g.co': 'short_url'
         }
-        
-        # Determinar servicio - MEJORADO para manejar rutas específicas
+
+        # Determinar servicio - busco coincidencia por host o por ruta específica
         for key, value in service_map.items():
-            if key in host or (key.startswith('google.com/') and key.replace('google.com/', '') in path):
+            # caso exacto subdominio: 'translate.google.com' in host
+            if key in host:
                 service = value
                 break
-        
+            # caso rutas como 'google.com/maps'
+            if key.startswith('google.com/') and key.replace('google.com/', '') in path:
+                service = value
+                break
+
         # Corrección especial para Maps en google.com
         if service == "search" and ('/maps' in path or 'maps.google.com' in host):
             service = "maps"
-        
+
         # Procesar según el servicio
         if service == "drive":
             content_type, content_id = self._process_drive(path, query_params)
@@ -117,10 +123,18 @@ class GoogleExtractor(BaseExtractor):
             content_id = path.strip('/')
         elif service == "search":
             content_type = self._process_search(query_params)
-        
-        # Obtener emoji - CORREGIDO para usar content_type correcto
-        emoji = EMOJI_MAPS['google'].get(content_type, '🔍')
-        
+
+        # Obtener emoji - más robusto y con fallback explícito
+        google_emojis = EMOJI_MAPS.get('google', {}) if isinstance(EMOJI_MAPS, dict) else {}
+        # 1) intenta por content_type, 2) por service, 3) fallback local para casos conocidos, 4) default
+        emoji = google_emojis.get(content_type) or google_emojis.get(service) or {
+            'translate': '🔤',
+            'contacts': '👤',
+            'short_url': '🔗',
+            'drive': '📁',
+            'maps': '📍',
+        }.get(content_type, '🔍')
+
         return {
             'site_name': self.SITE_NAME,
             'emoji': emoji,
@@ -129,7 +143,8 @@ class GoogleExtractor(BaseExtractor):
             'content_id': content_id,
             'query': query
         }
-    
+
+
     def _process_drive(self, path: str, query_params: dict) -> Tuple[str, str]:
         """Procesa URLs de Google Drive"""
         # drive.google.com/drive/folders/1ABC123def456
@@ -455,6 +470,13 @@ class GoogleExtractor(BaseExtractor):
         }
         
         type_display = type_names.get(content_type, service.capitalize())
+
+        # Casos especiales: Translate y Contacts
+        if content_type == "translate":
+            return f"[🔤 Traductor]"
+        if content_type == "contacts":
+            return f"[👤 Contactos]"
+
         
         # Construir la salida - CORREGIDO para casos específicos
         if 'search' in content_type and query:
