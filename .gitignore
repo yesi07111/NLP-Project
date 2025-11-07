@@ -497,6 +497,7 @@ $RECYCLE.BIN/
 
 # Custom
 *.json
+*.jsonl
 !meta.json
 *.html
 media_*
