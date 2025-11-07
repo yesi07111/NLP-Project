@@ -1,7 +1,9 @@
-import json
+import re
 import os
+import json
 from datetime import datetime
 from typing import Dict, List, Any
+
 
 def load_chat_messages(chat_filename: str) -> List[Dict]:
     """
@@ -82,7 +84,7 @@ def create_patterns_summary(messages: List[Dict]) -> Dict[str, Any]:
     Returns:
         Diccionario con el resumen completo de patrones
     """
-    from regex_extractor import extract_regex_patterns, analyze_text_patterns
+    from regex.regex_extractor import extract_regex_patterns, analyze_text_patterns
     
     summary = {
         "metadata": {
@@ -121,7 +123,7 @@ def extract_financial_patterns(messages: List[Dict]) -> Dict:
     """
     Extrae y resume patrones financieros de todos los mensajes.
     """
-    from regex_extractor import extract_regex_patterns
+    from regex.regex_extractor import extract_regex_patterns
     
     financial_data = {
         "explicit_currencies": [],
@@ -158,7 +160,7 @@ def extract_temporal_patterns(messages: List[Dict]) -> Dict:
     """
     Extrae y resume patrones temporales de todos los mensajes.
     """
-    from regex_extractor import extract_regex_patterns
+    from regex.regex_extractor import extract_regex_patterns
     
     temporal_data = {
         "absolute_dates": [],
@@ -190,7 +192,7 @@ def extract_social_patterns(messages: List[Dict]) -> Dict:
     """
     Extrae y resume patrones sociales de todos los mensajes.
     """
-    from regex_extractor import extract_regex_patterns
+    from regex.regex_extractor import extract_regex_patterns
     
     social_data = {
         "hashtags": [],
@@ -226,7 +228,7 @@ def extract_contact_patterns(messages: List[Dict]) -> Dict:
     """
     Extrae y resume informacion de contacto de todos los mensajes.
     """
-    from regex_extractor import extract_regex_patterns
+    from regex.regex_extractor import extract_regex_patterns
     
     contact_data = {
         "emails": [],
@@ -258,7 +260,7 @@ def extract_technical_patterns(messages: List[Dict]) -> Dict:
     """
     Extrae y resume patrones tecnicos de todos los mensajes.
     """
-    from regex_extractor import extract_regex_patterns
+    from regex.regex_extractor import extract_regex_patterns
     
     technical_data = {
         "coordinates": [],
@@ -292,7 +294,7 @@ def calculate_conversation_metrics(messages: List[Dict]) -> Dict:
     """
     Calcula metricas generales de la conversacion basadas en los patrones encontrados.
     """
-    from regex_extractor import extract_regex_patterns
+    from regex.regex_extractor import extract_regex_patterns
     
     metrics = {
         "total_messages_with_patterns": 0,

@@ -1,19 +1,18 @@
-"""
-Analiza tendencias temporales en los patrones extraídos:
-- Evolución de precios por moneda
-- Patrones de actividad por hora/día
-- Correlación entre tipos de patrones
-- Detección de eventos/anomalías
-"""
-
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import defaultdict
 import statistics
-from typing import Dict, List, Any
+from typing import Dict, List
 
 class TrendAnalyzer:
     def __init__(self, patterns_data: Dict):
+        """
+        Analiza tendencias temporales en los patrones extraídos:
+        - Evolución de precios por moneda
+        - Patrones de actividad por hora/día
+        - Correlación entre tipos de patrones
+        - Detección de eventos/anomalías
+        """
         self.patterns_data = patterns_data
         self.messages = patterns_data.get("message_analysis", [])
     

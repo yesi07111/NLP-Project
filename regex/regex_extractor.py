@@ -45,10 +45,121 @@ def extract_regex_patterns(text: str) -> dict:
     
     return patterns
 
+# def _extract_monetary_patterns(text: str) -> dict:
+#     """
+#     Extrae patrones relacionados con dinero y precios usando expresiones regulares.
+#     Incluye monedas explicitas, precios implicitos y rangos.
+#     """
+#     monetary_data = {
+#         'monedas_explicitas': [],
+#         'precios_implicitos': [],
+#         'currency_ranges': [],
+#         'currency_ranges_extended': [],
+#         'currency_with_symbols': [],
+#         'currency_in_format': [],
+#         'currency_without_en': [],
+#         'currency_decimal': [],
+#         'price_changes': [],
+#         'labeled_prices': [],
+#         'preposition_prices': [],
+#         'discounts_percent': [],
+#         'discounts_absolute': []
+#     }
+    
+#     # Definicion de patrones para monedas
+#     currency_patterns = [
+#     # 1. Formato: 150-200 mlc, 140 - 340 mn (rangos)
+#     r'(\d+(?:\s*-\s*\d+)+)\s*(mlc|mn|usd|dólares|dolares|pesos|eur|euros|cup|clp|mxn|moneda nacional|dinero cubano)\b',
+    
+#     # 2. Formato: de 300 a 400 usd, entre 500 y 600 mlc (rangos extendidos)
+#     r'(?:de|entre)\s+(\d+)\s*(?:a|y|y\s+entre)\s+(\d+)\s*(mlc|mn|usd|dólares|dolares|pesos|eur|euros|moneda nacional|dinero cubano)',
+    
+#     # 3 — CON "en" (debe matchear primero)
+# r'(\d+)\s*en\s+(clásica|clasica|mlc|mn|usd|dólares|moneda nacional|dinero cubano)\b',
+
+# # 4 — SIN "en" PERO aseguro que NO tenga "en" antes
+# r'(?<!en\s)(\d+)\s+(clásica|clasica|mlc|mn|usd|dólares|moneda nacional|dinero cubano)\b',
+
+#     # 5. Formato simple: 20 mn, 30 mlc, 40 usd
+#     r'(\d+)\s*(mlc|mn|usd|dólares|dolares|pesos|eur|euros|cup|clp|mxn|moneda nacional|dinero cubano)\b',
+
+#     # 6. Formato con símbolos: $20, 20€, 20 USD
+#     r'(?:\$|€|¥|£)?\s*(\d+(?:\.\d+)?)\s*(?:usd|dólares|dolares|pesos|eur|euros|mlc|mn|moneda nacional|dinero cubano)',
+    
+#     # 7. Formato con decimales: 150.50 mlc, 200,00 mn
+#     r'(\d+(?:[.,]\d+)?)\s*(mlc|mn|usd|dólares|dolares|pesos|moneda nacional|dinero cubano)',
+# ]
+
+    
+#     # Patrones para precios implicitos
+#     implicit_patterns = [
+#         # "sale en 700", "son 700", "cuesta 700"
+#         r'(?:sale\s+en|son|cuesta|vale|esta\s+en|está\s+en)\s+(\d+(?:[.,]\d+)?)',
+        
+#         # "subio a 400", "bajo a 300"
+#         r'(subió|subio|bajó|bajo)\s+(?:a\s+)?(\d+(?:[.,]\d+)?)',
+        
+#         # "precio: 500", "valor: 300"
+#         r'(?:precio|valor|costo|costó)\s*:?\s*(\d+(?:[.,]\d+)?)',
+        
+#         # "por 800", "a 600", "desde 400"
+#         r'(?:por|a|desde|hasta)\s+(\d+(?:[.,]\d+)?)',
+        
+#         # Descuentos porcentuales
+#         r'(\d+)%\s*(?:off|de\s+descuento|descuento)',
+#         r'rebajado\s+(?:a\s+)?(\d+(?:[.,]\d+)?)'
+#     ]
+    
+#     # Procesar patrones de monedas
+#         # Procesar patrones de monedas
+#     for i, pattern in enumerate(currency_patterns):
+#         matches = re.findall(pattern, text, re.IGNORECASE)
+
+#         if i == 0:
+#             monetary_data['currency_ranges'] = matches
+
+#         elif i == 1:
+#             monetary_data['currency_ranges_extended'] = matches
+
+#         elif i == 2:  # 20 en clasica
+#             monetary_data['currency_in_format'] = matches
+
+#         elif i == 3:  # 20 clasica
+#             monetary_data['currency_without_en'] = matches
+
+#         elif i == 4:  # simple: 20 usd
+#             monetary_data['monedas_explicitas'] = matches
+
+#         elif i == 5:  # con símbolos: $20
+#             monetary_data['currency_with_symbols'] = matches
+
+#         elif i == 6:  # decimales: 75.50 usd
+#             monetary_data['currency_decimal'] = matches
+
+    
+#     # Procesar patrones implicitos
+#     for i, pattern in enumerate(implicit_patterns):
+#         matches = re.findall(pattern, text, re.IGNORECASE)
+#         if i == 0:
+#             monetary_data['precios_implicitos'] = matches
+#         elif i == 1:
+#             monetary_data['price_changes'] = matches
+#         elif i == 2:
+#             monetary_data['labeled_prices'] = matches
+#         elif i == 3:
+#             monetary_data['preposition_prices'] = matches
+#         elif i == 4:
+#             monetary_data['discounts_percent'] = matches
+#         elif i == 5:
+#             monetary_data['discounts_absolute'] = matches
+    
+#     return monetary_data
+
 def _extract_monetary_patterns(text: str) -> dict:
     """
     Extrae patrones relacionados con dinero y precios usando expresiones regulares.
-    Incluye monedas explicitas, precios implicitos y rangos.
+    Devuelve 'monedas_explicitas' como lista de tuplas (cantidad, moneda) en orden de aparición,
+    además de otros buckets (ranges, decimals, implícitos) para compatibilidad.
     """
     monetary_data = {
         'monedas_explicitas': [],
@@ -65,85 +176,82 @@ def _extract_monetary_patterns(text: str) -> dict:
         'discounts_percent': [],
         'discounts_absolute': []
     }
-    
-    # Definicion de patrones para monedas
-    currency_patterns = [
-        # Formato: 150-200 mlc, 140 - 340 mn (rangos)
-        r'(\d+(?:\s*-\s*\d+)+)\s*(mlc|mn|usd|dólares|dolares|pesos|eur|euros|cup|clp|mxn|moneda nacional|dinero cubano)\b',
-        
-        # Formato: de 300 a 400 usd, entre 500 y 600 mlc
-        r'(?:de|entre)\s+(\d+)\s*(?:a|y|y\s+entre)\s+(\d+)\s*(mlc|mn|usd|dólares|dolares|pesos|eur|euros|moneda nacional|dinero cubano)',
-        
-        # Formato simple: 20 mn, 30 mlc, 40 usd
-        r'(\d+)\s*(mlc|mn|usd|dólares|dolares|pesos|eur|euros|cup|clp|mxn|moneda nacional|dinero cubano)\b',
-        
-        # Formato con simbolos: $20, 20€, 20 USD
-        r'(?:\$|€|¥|£)?\s*(\d+(?:\.\d+)?)\s*(?:usd|dólares|dolares|pesos|eur|euros|mlc|mn|moneda nacional|dinero cubano)',
-        
-        # Formato con "en": 20 en clasica, 20 en mlc
-        r'(\d+)\s*en\s*(clásica|clasica|mlc|mn|usd|dólares|moneda nacional|dinero cubano)',
-        
-        # Formato sin "en": 20 clasica, 20 mlc
-        r'(\d+)\s*(clásica|clasica|mlc|mn|usd|dólares|moneda nacional|dinero cubano)',
-        
-        # Formato con decimales: 150.50 mlc, 200,00 mn
-        r'(\d+(?:[.,]\d+)?)\s*(mlc|mn|usd|dólares|dolares|pesos|moneda nacional|dinero cubano)',
-    ]
-    
-    # Patrones para precios implicitos
-    implicit_patterns = [
-        # "sale en 700", "son 700", "cuesta 700"
-        r'(?:sale\s+en|son|cuesta|vale|esta\s+en|está\s+en)\s+(\d+(?:[.,]\d+)?)',
-        
-        # "subio a 400", "bajo a 300"
-        r'(subió|subio|bajó|bajo)\s+(?:a\s+)?(\d+(?:[.,]\d+)?)',
-        
-        # "precio: 500", "valor: 300"
-        r'(?:precio|valor|costo|costó)\s*:?\s*(\d+(?:[.,]\d+)?)',
-        
-        # "por 800", "a 600", "desde 400"
-        r'(?:por|a|desde|hasta)\s+(\d+(?:[.,]\d+)?)',
-        
-        # Descuentos porcentuales
-        r'(\d+)%\s*(?:off|de\s+descuento|descuento)',
-        r'rebajado\s+(?:a\s+)?(\d+(?:[.,]\d+)?)'
-    ]
-    
-    # Procesar patrones de monedas
-    for i, pattern in enumerate(currency_patterns):
-        matches = re.findall(pattern, text, re.IGNORECASE)
-        if i == 0:
-            monetary_data['currency_ranges'] = matches
-        elif i == 1:
-            monetary_data['currency_ranges_extended'] = matches
-        elif i == 2:
-            monetary_data['monedas_explicitas'] = matches
-        elif i == 3:
-            monetary_data['currency_with_symbols'] = matches
-        elif i == 4:
-            monetary_data['currency_in_format'] = matches
-        elif i == 5:
-            monetary_data['currency_without_en'] = matches
-        elif i == 6:
-            monetary_data['currency_decimal'] = matches
-    
-    # Procesar patrones implicitos
-    for i, pattern in enumerate(implicit_patterns):
-        matches = re.findall(pattern, text, re.IGNORECASE)
-        if i == 0:
-            monetary_data['precios_implicitos'] = matches
-        elif i == 1:
-            monetary_data['price_changes'] = matches
-        elif i == 2:
-            monetary_data['labeled_prices'] = matches
-        elif i == 3:
-            monetary_data['preposition_prices'] = matches
-        elif i == 4:
-            monetary_data['discounts_percent'] = matches
-        elif i == 5:
-            monetary_data['discounts_absolute'] = matches
-    
+
+    # tokens alternativos (sin grupos internos)
+    tokens_alt = r'mlc|mn|usd|clásica|clasica|dólares|dolares|pesos|eur|euros|cup|clp|mxn|moneda nacional|dinero cubano'
+
+    # Patrones: ordenados para evitar solapamientos (rango -> rango extendido -> "en" -> sin "en")
+    combined_re = re.compile(
+        rf'(?P<range>\b\d+(?:\s*-\s*\d+)+)\s*(?P<cur1>{tokens_alt})\b'
+        rf'|(?P<range_ext>\b(?:de|entre)\s+(?P<re_a>\d+)\s*(?:a|y)\s+(?P<re_b>\d+)\s*(?P<cur2>{tokens_alt})\b)'
+        rf'|(?P<num_en>\b\d+(?:[.,]?\d+)?)\s+en\s+(?P<cur3>{tokens_alt})\b'
+        rf'|(?P<num_plain>\b\d+(?:[.,]?\d+)?)\s+(?P<cur4>{tokens_alt})\b',
+        re.IGNORECASE
+    )
+
+    found_entries = []  # lista de (start_pos, (cantidad, moneda))
+
+    # Recolectar matches por aparición
+    for m in combined_re.finditer(text):
+        if m.group('range'):
+            amount = m.group('range').strip()
+            currency = m.group('cur1').strip()
+            found_entries.append((m.start(), (amount, currency)))
+            # También añadimos a currency_ranges para compatibilidad
+            monetary_data['currency_ranges'].append((amount, currency))
+
+        elif m.group('range_ext'):
+            a = m.group('re_a').strip()
+            b = m.group('re_b').strip()
+            amount = f"{a}-{b}"
+            currency = m.group('cur2').strip()
+            found_entries.append((m.start(), (amount, currency)))
+            monetary_data['currency_ranges_extended'].append((a, b, currency))
+
+        elif m.group('num_en'):
+            amount = m.group('num_en').strip()
+            currency = m.group('cur3').strip()
+            found_entries.append((m.start(), (amount, currency)))
+            monetary_data['currency_in_format'].append((amount, currency))
+
+        elif m.group('num_plain'):
+            amount = m.group('num_plain').strip()
+            currency = m.group('cur4').strip()
+            found_entries.append((m.start(), (amount, currency)))
+            monetary_data['currency_without_en'].append((amount, currency))
+
+    # Ordenar por posición (por si finditer devolvió en otro orden por alternancia)
+    found_entries.sort(key=lambda x: x[0])
+    monedas_explicitas = [entry for _, entry in found_entries]
+
+    # Rellenar currency_decimal y currency_with_symbols por patrones separados (compatibilidad)
+    # decimales: "75.50 usd" o "200,00 mn"
+    dec_re = re.compile(rf'\b(\d+(?:[.,]\d+)?)\s+({tokens_alt})\b', re.IGNORECASE)
+    monetary_data['currency_decimal'] = [(m.group(1).strip(), m.group(2).strip()) for m in dec_re.finditer(text)]
+
+    # símbolos: "$20 usd" o "$20 mlc"
+    sym_re = re.compile(rf'(?:\$|€|¥|£)\s*(\d+(?:[.,]\d+)?)\s+({tokens_alt})\b', re.IGNORECASE)
+    monetary_data['currency_with_symbols'] = [(m.group(1).strip(), m.group(2).strip()) for m in sym_re.finditer(text)]
+
+    # Patrones implícitos (sin moneda explícita)
+    implicit_patterns = {
+        'precios_implicitos': re.compile(r'\b(?:sale\s+en|son|cuesta|vale|esta\s+en|está\s+en)\s+(\d+(?:[.,]\d+)?)', re.IGNORECASE),
+        'price_changes': re.compile(r'\b(subió|subio|bajó|bajo)\s+(?:a\s+)?(\d+(?:[.,]\d+)?)', re.IGNORECASE),
+        'labeled_prices': re.compile(r'\b(?:precio|valor|costo|costó)\s*:?\s*(\d+(?:[.,]\d+)?)', re.IGNORECASE),
+        'preposition_prices': re.compile(r'\b(?:por|a|desde|hasta)\s+(\d+(?:[.,]\d+)?)', re.IGNORECASE),
+        'discounts_percent': re.compile(r'(\d+)%\s*(?:off|de\s+descuento|descuento)', re.IGNORECASE),
+        'discounts_absolute': re.compile(r'\brebajado\s+(?:a\s+)?(\d+(?:[.,]\d+)?)', re.IGNORECASE),
+    }
+
+    for key, regex in implicit_patterns.items():
+        monetary_data[key] = [g if isinstance(g := (m.group(1) if m.groups() else m.group(0)), str) else g
+                              for m in regex.finditer(text)]
+
+    # Finalmente, asignar monedas_explicitas (lista de tuplas) — así el tester podrá hacer match[1]
+    monetary_data['monedas_explicitas'] = monedas_explicitas
+
     return monetary_data
+
 
 def _extract_date_patterns(text: str) -> dict:
     """
