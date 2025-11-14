@@ -64,7 +64,7 @@ def has_negation(token):
     """
     # 1. Negación sobre el propio token (caso ideal)
     for child in token.children:
-        if child.lemma_.lower() in NEGATORS and child.dep_ == "advmod":
+        if child.lemma_.lower() in NEGATORS and child.dep_ in ["advmod", "case"]:
             return True
 
     # 2. "no + verbo" afecta objetos del verbo
@@ -348,6 +348,48 @@ def rule_nada_bueno_pattern(token):
 
     return 0
 
+def rule_verb_with_negative_object(token):
+    """
+    Detecta patrones donde un verbo neutral/positivo tiene como
+    objeto un sustantivo negativo:
+    
+    - recibir [excusa, queja, reclamo]
+    - dar [mala noticia]
+    - obtener [resultado malo]
+    - presentar [problemas]
+    """
+    # Solo aplica a verbos
+    if token.pos_ != "VERB":
+        return 0
+
+    negative_nouns = {
+        "excusa", "excusas",
+        "problema", "problemas",
+        "queja", "quejas",
+        "crítica", "críticas",
+        "error", "errores",
+        "mala_noticia", "noticia_mala",
+        "malas", "mala"
+    }
+
+    # revisar objetos directos u oblicuos
+    for child in token.children:
+        if child.dep_ in ("obj", "dobj", "obl", "nmod"):
+            lemma = child.lemma_.lower()
+            
+            # Caso 1: el objeto está en tu léxico de negativos
+            if lemma in NEGATIVE_WORDS:
+                return NEGATIVE_WORDS[lemma] * 1.2   # más fuerte, porque el verbo lo enfatiza
+            
+            # Caso 2: objeto multinuclear (malas noticias)
+            # ejemplo token: "dar", child="noticias", child has amod="malas"
+            for subchild in child.children:
+                if subchild.pos_ == "ADJ" and subchild.lemma_ in NEGATIVE_WORDS:
+                    return NEGATIVE_WORDS[subchild.lemma_] * 1.3
+
+    return 0
+
+
 
 
 def apply_grammatical_rules(token, base_score, debug_info):
@@ -388,6 +430,8 @@ def apply_grammatical_rules(token, base_score, debug_info):
         (rule_decepcionante_bastante, "decepcionante_bastante"),
         (rule_visitado_cerrado, "visitado_cerrado"),
         (rule_nada_bueno_pattern, "nada_bueno_pattern"),
+        (rule_verb_with_negative_object, "verb_with_negative_object"),
+
         ]:
 
         adjustment = rule_fn(token)
@@ -495,7 +539,7 @@ def compute_subtree_sentiment(token, visited, debug):
         #     adjusted = apply_grammatical_rules(token, base_score, debug)
         #     token_score = adjusted
         # else:
-        token_score = 0.0
+        token_score = 0
 
     # --- 3. Fusionar hijos con el token (promedio ponderado simple) ---
     if child_scores:
@@ -596,9 +640,11 @@ if __name__ == "__main__":
         # "No tienes ningun producto de calidad",
         # "Nada insteresante",
         # "La obra de teatro superó todas mis expectativas."
-        "Los profesores están muy capacitados y comprometidos."
-         
-    ]
+        #"Los profesores están muy capacitados y comprometidos."
+        #"El producto que compré se deshizo al poco tiempo de uso, una decepción que el servicio postventa no mejoró; en lugar de una solución, recibí excusas.",
+        "La mayor virtud de esta película es su existencia.El hecho de que podamos jugar con los tópicos más extremos de las identidades patrias (la andaluza y la vasca) sin que nadie se escandalice ni ponga el grito en el cielo indica mucho de nuestra madurez como nación (pese a quien pese). Bueno corrijo: el hecho de que podamos jugar y hacer mofa y befa de los tópicos sobre los vascos y el nacionalismo vasco sin que nadie se escandalice ni ponga el grito en el cielo indica mucho del grado de normalización de ciertas cuestiones que antes eran llagas abiertas siempre dispuestas a sangrar. Y hago esta corrección porque los andaluces han sido motivo de guasa siempre y nunca ha pasado nada.Por esto mismo el planteamiento de Ocho Apellidos Vascos"" es valiente es oportuno y es oportunista. Seguramente sea esa una de las principales razones por la que los españoles hemos acudido en masa en una masa casi sin precedentes a los cines a ver este producto patrocinado por Tele 5. Esa junto con la acertada fecha de estreno (entre los oscar y los blockbusters del verano) y la brutal y ejemplar campaña de marketing la cual aplaudo y celebro.Eso es todo lo que puedo celebrar de este despropósito muy a mi pesar.Siempre digo y repito eso de ""el oscuro placer de ver películas malas y disfrutarlas"" y siempre insisto en que ""no hay que olvidar que el principal propósito del cine es entretener"". Lo digo y lo mantengo. El problema es que ""Ocho Apelidos Vascos"" no es lo suficientemente mala ni lo suficientemente friki ni lo suficientemente disparatada para ser una ""Peli Mala""(como Sharknado o Xanadu o Condemor). Y desgraciadamente no es lo suficientemente entretenida para perdonarle su mediocridad (siempre desde mi punto de vista).Esa es precisamente la palabra que mejor la define: ""Mediocridad"". Es dolorosamente mediocre. Es simple que no sencilla. Es impersonal y lo peor: está hecha sin ganas.Funciona porque el planteamiento interesa y no por novedoso (sacar un elemento de su entorno e introducirlo en otro totalmente ajeno y hostil es uno de los argumentos básicos en la comedia desde que el cine es cine) sino por lo que explicaba al principio.Pero todos los demás elementos apenas encajan o no lo hacen en absoluto. Toda la película es una caída en picado desde un comienzo prometedor a un final vergonzoso pasando por todas las situaciones ""cómicas"" de manual y todos los tópicos más manidos de la comedia de enredo. Que sí César que ya te oigo replicarme: ""que todas las historias están ya contadas"". Tienes  toda la razón pero se pueden seguir contando con un poco de ganas o al menos de formas si no originales sí convincentes. Y volvemos al principal problema de gran parte del cine patrio (y mucho foráneo): el guión. La mayoría de los directores confunden el argumento con el guión. El argumento es el planteamiento el guión el desarrollo. Una grandísima parte de las películas españolas que llevo años sufriendo se desinflan con suerte a la mitad de su recorrido. Pocos son los cineastas que se molestan en desarrollar sus historias menos aún en rematarlas y en hacer que las cosas encajen. Parece que en las escuelas de cine que surgen como champiñones en este país nuestro se olvidan de poner ""El Guión"" como asignatura.La que nos ocupa hoy es un ejemplo más: hay un planteamiento interesante aunque torpemente presentado y ante la incapacidad (o la falta de ganas) de su director de desarrollarlo de una manera convincente (o alocadamente convincente) se refugia en un enredo de principiante del cual no sabe cómo salir aunque todos intuímos (y tememos) desde el principio cómo lo va a hacer: a la fuerza y sin lubricante.Lo que salva este producto del descalabro total es el monologuista Dani Rovira con sus inspirados monólogos y su desparpajo y Karra Elejalde dando vida la único personaje creíble de toda la historia. Carmen Machi muy bien haciendo de Carmen Machi y de Clara Lago...llamarla actriz sería insultar al resto de la profesión (Elsa Pataki incluída).Aún con todo: - sí hay unas cuantas situaciones capaces de arrancar risas e incluso carcajadas y - sí resulta entretenida (a ratos). Pero me duele pensar que ésto es lo que el público está esperando del cine español para llenar las salas. Me duele pensar que el cine también como casi todos los ámbitos de poder está en manos de los mediocres. Y me duele pensar que sean los sub-productos como este los que vayan a salvar al cine español de las aguas en que él sólo se ha sumergido.Robándole una cita a mi amigo Regino Mateo y parafraseándola: ""no es lo mismo hacer películas que hacer cine"
+    
+    ]  
     for ex in examples:
         print(ex, "\n --> ",analyze_sentiment(ex, True), "\n\n")
 
