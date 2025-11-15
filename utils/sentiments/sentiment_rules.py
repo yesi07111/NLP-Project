@@ -14,43 +14,72 @@ translator = Translator()
 
 nlp = spacy.load("es_core_news_md")
 
+
+# ================================================================
+#  FUNCIONES AUXILIARES DE TRANSLATOR
+# ================================================================
+
+import json
+import os
+
+FALLBACK_CACHE_FILE = "fallback_cache.json"
+
+# Cargar la caché si existe
+if os.path.exists(FALLBACK_CACHE_FILE):
+    with open(FALLBACK_CACHE_FILE, "r", encoding="utf-8") as f:
+        FALLBACK_CACHE = json.load(f)
+else:
+    FALLBACK_CACHE = {}  # cache vacía
+
+def save_fallback_cache():
+    """Guarda la caché de fallback en disco."""
+    with open(FALLBACK_CACHE_FILE, "w", encoding="utf-8") as f:
+        json.dump(FALLBACK_CACHE, f, ensure_ascii=False, indent=2)
+
+def get_fallback_score(lemma):
+    """
+    Obtiene el puntaje de una palabra que no está en el léxico:
+    - Usa la caché si ya existe
+    - Si no, traduce → consulta SentiWordNet → guarda el resultado
+    """
+    lemma = lemma.lower()
+
+    # 1. Revisar caché primero
+    if lemma in FALLBACK_CACHE:
+        return FALLBACK_CACHE[lemma]
+
+    # 2. Traducir al inglés
+    try:
+        translated = translator.translate(lemma, src='es', dest='en').text.lower()
+    except Exception:
+        translated = lemma  # fallback de emergencia si falla la traducción
+
+    # 3. Obtener synsets en inglés
+    synsets = list(swn.senti_synsets(translated))
+
+    if synsets:
+        synset = synsets[0]  # el más común
+
+        # Score neto = positivo - negativo (SentiWordNet)
+        net_score = synset.pos_score() - synset.neg_score()
+
+        # Escalar para no dominar tu léxico manual
+        scaled_score = round(net_score * 0.5, 4)
+    else:
+        scaled_score = 0.0  # sin info → neutro
+
+    # 4. Guardar en la caché
+    FALLBACK_CACHE[lemma] = scaled_score
+    save_fallback_cache()
+
+    return scaled_score
+
+
+
 # ================================================================
 #  FUNCIONES AUXILIARES DE DEPENDENCIAS
 # ================================================================
 
-# def has_negation(token):
-#     """
-#     Verifica si un token está afectado por una negación.
-#     Busca en:
-#       - Hijos inmediatos (token.children)
-#       - Ancestros hasta 3 niveles
-#       - Tokens a la izquierda (lefts)
-#       - Subárbol local
-#     """
-#     for child in token.children:
-#         if child.text.lower() in NEGATORS:
-#             return True
-
-#     # Buscar en ancestros hasta 3 niveles
-#     ancestor = token.head
-#     for _ in range(3):
-#         if not ancestor or ancestor == token:
-#             break
-#         if ancestor.text.lower() in NEGATORS:
-#             return True
-#         ancestor = ancestor.head
-
-#     # Buscar tokens a la izquierda inmediata
-#     for left in token.lefts:
-#         if left.text.lower() in NEGATORS:
-#             return True
-
-#     # Buscar en el subárbol (por ejemplo “no me gusta nada”)
-#     for sub in token.subtree:
-#         if sub.text.lower() in NEGATORS:
-#             return True
-
-#     return False
 
 def has_negation(token):
     """
@@ -530,16 +559,7 @@ def compute_subtree_sentiment(token, visited, debug):
         adjusted = apply_grammatical_rules(token, base_score, debug)
         token_score = adjusted
     else:
-        # translated = translator.translate(lemma, src='es', dest='en').text.lower()
-        # synsets = list(swn.senti_synsets(translated))
-        # if synsets:
-        #     synset = synsets[0]  # Usa el synset más común
-        #     net_score = synset.pos_score() - synset.neg_score()
-        #     base_score = net_score * 0.5  # Escala para no dominar el léxico local
-        #     adjusted = apply_grammatical_rules(token, base_score, debug)
-        #     token_score = adjusted
-        # else:
-        token_score = 0
+        token_score = get_fallback_score(lemma)
 
     # --- 3. Fusionar hijos con el token (promedio ponderado simple) ---
     if child_scores:
