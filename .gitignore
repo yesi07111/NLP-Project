@@ -492,4 +492,6 @@ _cache
 .vscode
 .venv
 
-results
+utils/sentiments/results
+utils/sentiments/datasets
+utils/sentiments/models

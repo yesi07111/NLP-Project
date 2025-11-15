@@ -41,7 +41,7 @@ POSITIVE_WORDS = {
     "ayudar": 1.1, "colaborar": 1.2, "brindar": 1.4, "inspirar": 1.5, "responder": 0.5,
     
     # Sustantivos positivos
-    "amor": 1.5, "alegría": 1.3, "felicidad": 1.4, "éxito": 1.3,
+    "amor": 1.5, "alegría": 1.3, "felicidad": 1.4, "éxito": 1.3, "reir": 1.5,
     "éxitos": 1.3, "sueño": 1.1, "sueños": 1.1, "logro": 1.2, "logros": 1.2,
     "meme": 0.8, "memes": 0.8, "trend": 1.2, "viral": 1.3,
     "fandom": 1.2, "fan": 1.1, "fans": 1.1, "hype": 1.4,
