@@ -94,7 +94,7 @@ class SentimentMarkovChain:
             sg=1,  # Skip-gram
             hs=0,  # Negative sampling
             negative=10,
-            epochs=10
+            epochs=30
         )
 
         # Construir vocabulario
