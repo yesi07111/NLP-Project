@@ -1,7 +1,7 @@
 import csv
 import pandas as pd
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix, classification_report
-from sentiment_rules import analyze_sentiment
+from utils.sentiments.sentiment_rules import analyze_sentiment
 
 def load_test_data(filepath):
     """Load test data from CSV file."""

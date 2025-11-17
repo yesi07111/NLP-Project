@@ -1,5 +1,5 @@
 import spacy
-from sentiment_lexicon import (
+from utils.sentiments.sentiment_lexicon import (
     LEXICON,
     NEGATORS,
     INTENSIFIERS,
@@ -559,7 +559,7 @@ def compute_subtree_sentiment(token, visited, debug):
         adjusted = apply_grammatical_rules(token, base_score, debug)
         token_score = adjusted
     else:
-        token_score = get_fallback_score(lemma)
+        token_score = 0 # get_fallback_score(lemma)
 
     # --- 3. Fusionar hijos con el token (promedio ponderado simple) ---
     if child_scores:

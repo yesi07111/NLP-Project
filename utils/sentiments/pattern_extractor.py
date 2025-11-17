@@ -1,5 +1,5 @@
 import spacy
-from sentiment_lexicon import LEXICON
+from  utils.sentiments.sentiment_lexicon import LEXICON
 nlp = spacy.load("es_core_news_md")
 
 # ==========================================================

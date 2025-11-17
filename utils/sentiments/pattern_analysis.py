@@ -1,6 +1,6 @@
 import pandas as pd
 from collections import defaultdict, Counter
-from pattern_extractor import extract_filtered_patterns
+from utils.sentiments.pattern_extractor import extract_filtered_patterns
 
 # ==========================================================
 # CARGAR DATASET
