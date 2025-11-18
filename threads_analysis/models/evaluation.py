@@ -26,7 +26,7 @@ import torch
 from sklearn.metrics import precision_recall_fscore_support, roc_auc_score
 
 from threads_analysis.knowledge_graph import ConversationGraphBuilder
-from threads_analysis.models.triple_model_trainer import (
+from threads_analysis.models.model_trainer import (
     EmbeddingCache,
     load_mlp_from_path,
     make_features,

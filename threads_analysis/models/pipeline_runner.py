@@ -87,7 +87,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--train-chats", default="threads_analysis_results/train_chats")
     parser.add_argument("--output-dir", default="threads_analysis/models/output")
-    parser.add_argument("--epochs", type=int, default=4)
+    parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--folds", type=int, default=5)
     args = parser.parse_args()
@@ -153,15 +153,15 @@ def main():
     current_step += 1
     progress_bar(current_step, TOTAL_STEPS)
 
-    log_info("Entrenando los tres modelos (triple_model_trainer.py)...")
+    log_info("Entrenando los modelos (model_trainer.py)...")
 
     run([
-        sys.executable, "-m", "threads_analysis.models.triple_model_trainer",
+        sys.executable, "-m", "threads_analysis.models.model_trainer",
         "--pairs", pairs_path,
         "--output-dir", str(output_dir),
-        "--epochs", str(args.epochs),
-        "--batch-size", str(args.batch_size),
-        "--folds", str(args.folds)
+        # "--epochs", str(args.epochs),
+        # "--batch-size", str(args.batch_size),
+        # "--folds", str(args.folds)
     ])
 
     log_ok("Modelos entrenados exitosamente.")

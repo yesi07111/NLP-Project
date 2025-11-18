@@ -1,0 +1,240 @@
+{
+  "total_examples": 2894036,
+  "labels": {
+    "positive": 162867,
+    "negative": 1106435,
+    "hard_negative": 1624734
+  },
+  "chats": {
+    "13": {
+      "total": 764518,
+      "positive": 46205,
+      "negative": 256962,
+      "hard_negative": 461351,
+      "pos_ratio": 0.06043677192688727,
+      "neg_ratio": 0.33610981036417714,
+      "hard_ratio": 0.6034534177089356
+    },
+    "24": {
+      "total": 1483920,
+      "positive": 82817,
+      "negative": 573086,
+      "hard_negative": 828017,
+      "pos_ratio": 0.05580961237802577,
+      "neg_ratio": 0.38619736913041136,
+      "hard_ratio": 0.5579930184915629
+    },
+    "12": {
+      "total": 56674,
+      "positive": 2829,
+      "negative": 25827,
+      "hard_negative": 28018,
+      "pos_ratio": 0.04991706955570455,
+      "neg_ratio": 0.45571161379115643,
+      "hard_ratio": 0.494371316653139
+    },
+    "9": {
+      "total": 140218,
+      "positive": 8322,
+      "negative": 48914,
+      "hard_negative": 82982,
+      "pos_ratio": 0.05935044002909755,
+      "neg_ratio": 0.3488425166526409,
+      "hard_ratio": 0.5918070433182616
+    },
+    "3": {
+      "total": 142261,
+      "positive": 7329,
+      "negative": 62005,
+      "hard_negative": 72927,
+      "pos_ratio": 0.05151798454952517,
+      "neg_ratio": 0.4358538179824407,
+      "hard_ratio": 0.5126281974680341
+    },
+    "1": {
+      "total": 39342,
+      "positive": 2014,
+      "negative": 17362,
+      "hard_negative": 19966,
+      "pos_ratio": 0.05119211021300391,
+      "neg_ratio": 0.4413095419653297,
+      "hard_ratio": 0.5074983478216664
+    },
+    "16": {
+      "total": 58392,
+      "positive": 3134,
+      "negative": 24193,
+      "hard_negative": 31065,
+      "pos_ratio": 0.053671735854226604,
+      "neg_ratio": 0.4143204548568297,
+      "hard_ratio": 0.5320078092889436
+    },
+    "4": {
+      "total": 38170,
+      "positive": 2655,
+      "negative": 9357,
+      "hard_negative": 26158,
+      "pos_ratio": 0.06955724390882892,
+      "neg_ratio": 0.24514016243122871,
+      "hard_ratio": 0.6853025936599424
+    },
+    "18": {
+      "total": 4456,
+      "positive": 294,
+      "negative": 1286,
+      "hard_negative": 2876,
+      "pos_ratio": 0.06597845601436265,
+      "neg_ratio": 0.2885996409335727,
+      "hard_ratio": 0.6454219030520646
+    },
+    "6": {
+      "total": 1301,
+      "positive": 72,
+      "negative": 600,
+      "hard_negative": 629,
+      "pos_ratio": 0.05534204458109147,
+      "neg_ratio": 0.4611837048424289,
+      "hard_ratio": 0.48347425057647964
+    },
+    "23": {
+      "total": 27670,
+      "positive": 1445,
+      "negative": 11904,
+      "hard_negative": 14321,
+      "pos_ratio": 0.05222262378026744,
+      "neg_ratio": 0.4302132273220094,
+      "hard_ratio": 0.5175641488977232
+    },
+    "22": {
+      "total": 32474,
+      "positive": 15,
+      "negative": 32309,
+      "hard_negative": 150,
+      "pos_ratio": 0.0004619079879288046,
+      "neg_ratio": 0.9949190121327831,
+      "hard_ratio": 0.004619079879288046
+    },
+    "0": {
+      "total": 52974,
+      "positive": 3073,
+      "negative": 19316,
+      "hard_negative": 30585,
+      "pos_ratio": 0.05800958960999736,
+      "neg_ratio": 0.3646317061199834,
+      "hard_ratio": 0.5773587042700192
+    },
+    "15": {
+      "total": 16099,
+      "positive": 835,
+      "negative": 7046,
+      "hard_negative": 8218,
+      "pos_ratio": 0.051866575563699606,
+      "neg_ratio": 0.4376669358345239,
+      "hard_ratio": 0.5104664886017765
+    },
+    "8": {
+      "total": 3649,
+      "positive": 186,
+      "negative": 1771,
+      "hard_negative": 1692,
+      "pos_ratio": 0.05097286927925459,
+      "neg_ratio": 0.48533844889010685,
+      "hard_ratio": 0.46368868183063855
+    },
+    "7": {
+      "total": 785,
+      "positive": 1,
+      "negative": 774,
+      "hard_negative": 10,
+      "pos_ratio": 0.0012738853503184713,
+      "neg_ratio": 0.9859872611464968,
+      "hard_ratio": 0.012738853503184714
+    },
+    "14": {
+      "total": 21454,
+      "positive": 1229,
+      "negative": 8232,
+      "hard_negative": 11993,
+      "pos_ratio": 0.05728535471240794,
+      "neg_ratio": 0.3837046704577235,
+      "hard_ratio": 0.5590099748298686
+    },
+    "19": {
+      "total": 1138,
+      "positive": 50,
+      "negative": 606,
+      "hard_negative": 482,
+      "pos_ratio": 0.043936731107205626,
+      "neg_ratio": 0.5325131810193322,
+      "hard_ratio": 0.4235500878734622
+    },
+    "2": {
+      "total": 2152,
+      "positive": 109,
+      "negative": 1034,
+      "hard_negative": 1009,
+      "pos_ratio": 0.05065055762081784,
+      "neg_ratio": 0.4804832713754647,
+      "hard_ratio": 0.46886617100371747
+    },
+    "21": {
+      "total": 1558,
+      "positive": 69,
+      "negative": 839,
+      "hard_negative": 650,
+      "pos_ratio": 0.044287548138639284,
+      "neg_ratio": 0.5385109114249037,
+      "hard_ratio": 0.417201540436457
+    },
+    "10": {
+      "total": 2080,
+      "positive": 101,
+      "negative": 1017,
+      "hard_negative": 962,
+      "pos_ratio": 0.04855769230769231,
+      "neg_ratio": 0.4889423076923077,
+      "hard_ratio": 0.4625
+    },
+    "17": {
+      "total": 787,
+      "positive": 25,
+      "negative": 571,
+      "hard_negative": 191,
+      "pos_ratio": 0.03176620076238882,
+      "neg_ratio": 0.7255400254129606,
+      "hard_ratio": 0.24269377382465057
+    },
+    "20": {
+      "total": 634,
+      "positive": 6,
+      "negative": 593,
+      "hard_negative": 35,
+      "pos_ratio": 0.00946372239747634,
+      "neg_ratio": 0.9353312302839116,
+      "hard_ratio": 0.055205047318611984
+    },
+    "11": {
+      "total": 326,
+      "positive": 14,
+      "negative": 197,
+      "hard_negative": 115,
+      "pos_ratio": 0.04294478527607362,
+      "neg_ratio": 0.6042944785276073,
+      "hard_ratio": 0.35276073619631904
+    },
+    "5": {
+      "total": 1004,
+      "positive": 38,
+      "negative": 634,
+      "hard_negative": 332,
+      "pos_ratio": 0.037848605577689244,
+      "neg_ratio": 0.6314741035856574,
+      "hard_ratio": 0.33067729083665337
+    }
+  },
+  "global_ratio": {
+    "positive": 0.05627677057230802,
+    "negative": 0.3823155620731739,
+    "hard_negative": 0.5614076673545181
+  }
+}
