@@ -47,7 +47,7 @@ def load_chat_messages(chat_filename: str) -> List[Dict]:
     except Exception as e:
         print(f"❌ Error cargando {chat_filename}: {e}")
         return []
-
+    
 def save_patterns_summary(chat_filename: str, messages: List[Dict]):
     """
     Guarda el resumen de patrones en un archivo JSON.
@@ -61,12 +61,13 @@ def save_patterns_summary(chat_filename: str, messages: List[Dict]):
     """    
     patterns_data = create_patterns_summary(messages)
     
-    base_name = os.path.splitext(chat_filename)[0]
+    base_name = os.path.splitext(os.path.basename(chat_filename))[0]
     patterns_filename = f"{base_name}_patterns.json"
-    patterns_path = os.path.join('patterns', patterns_filename)
+    # CAMBIO: Guardar directamente en threads_analysis_results
+    patterns_path = os.path.join('threads_analysis_results', patterns_filename)
     
-    # Asegurar que existe la carpeta patterns
-    os.makedirs('patterns', exist_ok=True)
+    # Asegurar que existe la carpeta threads_analysis_results
+    os.makedirs('threads_analysis_results', exist_ok=True)
     
     with open(patterns_path, 'w', encoding='utf-8') as f:
         json.dump(patterns_data, f, ensure_ascii=False, indent=2)
@@ -74,23 +75,44 @@ def save_patterns_summary(chat_filename: str, messages: List[Dict]):
     print(f"Resumen de patrones guardado: {patterns_path}")
     return patterns_data
 
-def create_patterns_summary(messages: List[Dict]) -> Dict[str, Any]:
+def create_patterns_summary(messages: List[Dict], chat_filename: str = None) -> Dict[str, Any]:
     """
     Crea un resumen completo de todos los patrones encontrados en los mensajes.
     
     Args:
         messages: Lista de mensajes a analizar
+        chat_filename: Nombre del archivo de chat (opcional)
         
     Returns:
         Diccionario con el resumen completo de patrones
     """
     from regex.regex_extractor import extract_regex_patterns, analyze_text_patterns
     
+    # Obtener el nombre real del chat
+    actual_chat_names = set()
+    for msg in messages:
+        chat_name = msg.get('chat_name')
+        if chat_name and chat_name != 'unknown':
+            actual_chat_names.add(chat_name)
+    
+    # Si no encontramos nombres válidos, usar el nombre del archivo
+    if not actual_chat_names and chat_filename:
+        base_name = os.path.splitext(os.path.basename(chat_filename))[0]
+        # Limpiar el nombre (remover fechas y otros patrones)
+        clean_name = re.sub(r'_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}$', '', base_name)
+        clean_name = re.sub(r'_+', ' ', clean_name).strip()
+        if clean_name:
+            actual_chat_names.add(clean_name)
+    
+    # Si todavía no hay nombres, usar "Chat"
+    if not actual_chat_names:
+        actual_chat_names.add("Chat")
+    
     summary = {
         "metadata": {
             "generated_at": datetime.now().isoformat(),
             "total_messages": len(messages),
-            "chats_analyzed": list(set(msg.get('chat_name', 'unknown') for msg in messages)),
+            "chats_analyzed": list(actual_chat_names),
             "analysis_version": "regex_patterns_v1"
         },
         "extracted_patterns": {
@@ -109,9 +131,11 @@ def create_patterns_summary(messages: List[Dict]) -> Dict[str, Any]:
         text = msg.get('text', '')
         if text:
             patterns = extract_regex_patterns(text)
+            # Usar el primer nombre de chat válido para todos los mensajes
+            chat_name = list(actual_chat_names)[0] if actual_chat_names else "Chat"
             summary["message_analysis"].append({
                 "message_id": msg.get('id'),
-                "chat_name": msg.get('chat_name'),
+                "chat_name": chat_name,
                 "timestamp": msg.get('date'),
                 "patterns_detected": patterns,
                 "enriched_text": analyze_text_patterns(text)
@@ -156,26 +180,125 @@ def extract_financial_patterns(messages: List[Dict]) -> Dict:
     
     return financial_data
 
+# def extract_temporal_patterns(messages: List[Dict]) -> Dict:
+#     """
+#     Extrae y resume patrones temporales de todos los mensajes.
+#     """
+#     from regex.regex_extractor import extract_regex_patterns
+    
+#     temporal_data = {
+#         "absolute_dates": [],
+#         "relative_references": [],
+#         "time_expressions": [],
+#         "total_temporal_references": 0
+#     }
+    
+#     all_dates = []
+    
+#     for msg in messages:
+#         text = msg.get('text', '')
+#         if text:
+#             patterns = extract_regex_patterns(text)
+#             # Recoger todas las fechas de diferentes categorias
+#             for key in patterns:
+#                 if key.startswith('dates_'):
+#                     all_dates.extend(patterns[key])
+    
+#     temporal_data["absolute_dates"] = [d for d in all_dates if re.search(r'\d', str(d))]
+#     temporal_data["relative_references"] = [d for d in all_dates if any(kw in str(d).lower() for kw in 
+#         ['hoy', 'ayer', 'mañana', 'semana', 'mes', 'año', 'próximo', 'pasado'])]
+#     temporal_data["time_expressions"] = list(set(all_dates))
+#     temporal_data["total_temporal_references"] = len(all_dates)
+    
+#     return temporal_data
+
 def extract_temporal_patterns(messages: List[Dict]) -> Dict:
     """
-    Extrae y resume patrones temporales de todos los mensajes.
+    Extrae y resume patrones temporales de todos los mensajes con contexto y usuarios.
     """
     from regex.regex_extractor import extract_regex_patterns
     
     temporal_data = {
+        "patterns_with_context": {},
         "absolute_dates": [],
         "relative_references": [],
         "time_expressions": [],
         "total_temporal_references": 0
     }
     
-    all_dates = []
+    # Diccionario para acumular patrones con contexto
+    patterns_dict = {}
     
+    for msg in messages:
+        text = msg.get('text', '')
+        user_id = msg.get('user_id', 'Unknown')
+        message_id = msg.get('id', '')
+        timestamp = msg.get('timestamp', '')
+        
+        if text:
+            patterns = extract_regex_patterns(text)
+            
+            # Procesar cada categoría de patrones temporales
+            temporal_categories = [key for key in patterns.keys() if key.startswith('dates_')]
+            
+            for category in temporal_categories:
+                for pattern in patterns[category]:
+                    if not pattern:
+                        continue
+                        
+                    # Normalizar el patrón
+                    if isinstance(pattern, tuple):
+                        pattern_text = ' '.join(str(p) for p in pattern if p)
+                    else:
+                        pattern_text = str(pattern)
+                    
+                    # Limpiar y normalizar el patrón
+                    pattern_text = pattern_text.strip().lower()
+                    
+                    # Extraer contexto alrededor del patrón
+                    context = extract_temporal_context(text, pattern_text)
+                    
+                    # Crear clave única para el patrón
+                    pattern_key = pattern_text
+                    
+                    if pattern_key not in patterns_dict:
+                        patterns_dict[pattern_key] = {
+                            'pattern': pattern_text,
+                            'category': category,
+                            'occurrences': [],
+                            'total_count': 0,
+                            'users': [],  # Cambiado de set() a lista
+                            'example_contexts': []
+                        }
+                    
+                    # Añadir ocurrencia
+                    patterns_dict[pattern_key]['occurrences'].append({
+                        'user_id': user_id,
+                        'message_id': message_id,
+                        'timestamp': timestamp,
+                        'context': context,
+                        'full_text': text[:200] + "..." if len(text) > 200 else text  # Texto completo truncado
+                    })
+                    
+                    patterns_dict[pattern_key]['total_count'] += 1
+                    
+                    # Añadir usuario si no está en la lista (mantener única)
+                    if user_id not in patterns_dict[pattern_key]['users']:
+                        patterns_dict[pattern_key]['users'].append(user_id)
+                    
+                    # Mantener máximo 3 contextos de ejemplo
+                    if len(patterns_dict[pattern_key]['example_contexts']) < 3:
+                        patterns_dict[pattern_key]['example_contexts'].append(context)
+    
+    # Convertir a la estructura final
+    temporal_data['patterns_with_context'] = patterns_dict
+    
+    # Mantener compatibilidad con la estructura anterior
+    all_dates = []
     for msg in messages:
         text = msg.get('text', '')
         if text:
             patterns = extract_regex_patterns(text)
-            # Recoger todas las fechas de diferentes categorias
             for key in patterns:
                 if key.startswith('dates_'):
                     all_dates.extend(patterns[key])
@@ -187,6 +310,49 @@ def extract_temporal_patterns(messages: List[Dict]) -> Dict:
     temporal_data["total_temporal_references"] = len(all_dates)
     
     return temporal_data
+
+def extract_temporal_context(text: str, pattern: str) -> str:
+    """
+    Extrae el contexto alrededor de un patrón temporal en el texto.
+    Devuelve la frase o parte del texto que contiene el patrón.
+    """
+    # Buscar el patrón en el texto (case insensitive)
+    pattern_lower = pattern.lower()
+    text_lower = text.lower()
+    
+    start_idx = text_lower.find(pattern_lower)
+    if start_idx == -1:
+        return text[:100] + "..." if len(text) > 100 else text
+    
+    end_idx = start_idx + len(pattern)
+    
+    # Extender el contexto hacia atrás hasta el inicio de la frase
+    context_start = start_idx
+    for i in range(start_idx - 1, max(0, start_idx - 50), -1):
+        if text[i] in '.!?;\n':
+            context_start = i + 1
+            break
+        if i == max(0, start_idx - 50):
+            context_start = i
+            break
+    
+    # Extender el contexto hacia adelante hasta el fin de la frase
+    context_end = end_idx
+    for i in range(end_idx, min(len(text), end_idx + 50)):
+        if text[i] in '.!?;\n':
+            context_end = i
+            break
+        if i == min(len(text), end_idx + 50) - 1:
+            context_end = i + 1
+            break
+    
+    context = text[context_start:context_end].strip()
+    
+    # Limpiar el contexto
+    context = re.sub(r'\s+', ' ', context)  # Reemplazar múltiples espacios
+    context = context.strip()
+    
+    return context
 
 def extract_social_patterns(messages: List[Dict]) -> Dict:
     """

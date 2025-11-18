@@ -37,7 +37,7 @@ class TrendAnalyzer:
                     currency = currency_match[1].lower()
                     if price and currency:
                         price_evolution[currency].append({
-                            "date": date,
+                            "date": date.isoformat(),  # Convertir a string
                             "price": price,
                             "message": msg.get("enriched_text", "")
                         })
@@ -59,10 +59,10 @@ class TrendAnalyzer:
         
         return {
             "price_statistics": stats,
-            "raw_data": price_evolution,
+            "raw_data": dict(price_evolution),  # Convertir a dict normal
             "time_period": self._get_analysis_period()
         }
-    
+
     def analyze_temporal_patterns(self) -> Dict:
         """
         Analiza patrones de actividad temporal
@@ -193,10 +193,20 @@ class TrendAnalyzer:
             if msg.get("timestamp"):
                 dates.append(datetime.fromisoformat(msg.get("timestamp").replace('Z', '+00:00')))
         
+        if not dates:
+            return {
+                "start": None,
+                "end": None,
+                "days": 0
+            }
+        
+        start = min(dates)
+        end = max(dates)
+        
         return {
-            "start": min(dates) if dates else None,
-            "end": max(dates) if dates else None,
-            "days": (max(dates) - min(dates)).days if len(dates) > 1 else 0
+            "start": start.isoformat(),  # Convertir a string
+            "end": end.isoformat(),      # Convertir a string
+            "days": (end - start).days if len(dates) > 1 else 0
         }
     
     def _find_peak_hours(self, hourly_activity: Dict) -> List:
@@ -302,9 +312,10 @@ def generate_comprehensive_report(patterns_file: str) -> Dict:
     
     analyzer = TrendAnalyzer(patterns_data)
     
+    # Obtener el reporte
     report = {
         "metadata": {
-            "generated_at": datetime.now().isoformat(),
+            "generated_at": datetime.now().isoformat(),  # Esto ya es string
             "source_file": patterns_file,
             "total_messages_analyzed": len(analyzer.messages)
         },
@@ -315,7 +326,23 @@ def generate_comprehensive_report(patterns_file: str) -> Dict:
         "executive_summary": generate_executive_summary(analyzer)
     }
     
+    # Convertir cualquier datetime restante a string
+    report = convert_datetime_to_string(report)
+    
     return report
+
+def convert_datetime_to_string(obj):
+    """
+    Convierte recursivamente objetos datetime a strings en una estructura de datos
+    """
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    elif isinstance(obj, dict):
+        return {k: convert_datetime_to_string(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_datetime_to_string(item) for item in obj]
+    else:
+        return obj
 
 def generate_executive_summary(analyzer: TrendAnalyzer) -> Dict:
     """Genera un resumen ejecutivo con los hallazgos más importantes"""

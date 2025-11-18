@@ -45,116 +45,6 @@ def extract_regex_patterns(text: str) -> dict:
     
     return patterns
 
-# def _extract_monetary_patterns(text: str) -> dict:
-#     """
-#     Extrae patrones relacionados con dinero y precios usando expresiones regulares.
-#     Incluye monedas explicitas, precios implicitos y rangos.
-#     """
-#     monetary_data = {
-#         'monedas_explicitas': [],
-#         'precios_implicitos': [],
-#         'currency_ranges': [],
-#         'currency_ranges_extended': [],
-#         'currency_with_symbols': [],
-#         'currency_in_format': [],
-#         'currency_without_en': [],
-#         'currency_decimal': [],
-#         'price_changes': [],
-#         'labeled_prices': [],
-#         'preposition_prices': [],
-#         'discounts_percent': [],
-#         'discounts_absolute': []
-#     }
-    
-#     # Definicion de patrones para monedas
-#     currency_patterns = [
-#     # 1. Formato: 150-200 mlc, 140 - 340 mn (rangos)
-#     r'(\d+(?:\s*-\s*\d+)+)\s*(mlc|mn|usd|dólares|dolares|pesos|eur|euros|cup|clp|mxn|moneda nacional|dinero cubano)\b',
-    
-#     # 2. Formato: de 300 a 400 usd, entre 500 y 600 mlc (rangos extendidos)
-#     r'(?:de|entre)\s+(\d+)\s*(?:a|y|y\s+entre)\s+(\d+)\s*(mlc|mn|usd|dólares|dolares|pesos|eur|euros|moneda nacional|dinero cubano)',
-    
-#     # 3 — CON "en" (debe matchear primero)
-# r'(\d+)\s*en\s+(clásica|clasica|mlc|mn|usd|dólares|moneda nacional|dinero cubano)\b',
-
-# # 4 — SIN "en" PERO aseguro que NO tenga "en" antes
-# r'(?<!en\s)(\d+)\s+(clásica|clasica|mlc|mn|usd|dólares|moneda nacional|dinero cubano)\b',
-
-#     # 5. Formato simple: 20 mn, 30 mlc, 40 usd
-#     r'(\d+)\s*(mlc|mn|usd|dólares|dolares|pesos|eur|euros|cup|clp|mxn|moneda nacional|dinero cubano)\b',
-
-#     # 6. Formato con símbolos: $20, 20€, 20 USD
-#     r'(?:\$|€|¥|£)?\s*(\d+(?:\.\d+)?)\s*(?:usd|dólares|dolares|pesos|eur|euros|mlc|mn|moneda nacional|dinero cubano)',
-    
-#     # 7. Formato con decimales: 150.50 mlc, 200,00 mn
-#     r'(\d+(?:[.,]\d+)?)\s*(mlc|mn|usd|dólares|dolares|pesos|moneda nacional|dinero cubano)',
-# ]
-
-    
-#     # Patrones para precios implicitos
-#     implicit_patterns = [
-#         # "sale en 700", "son 700", "cuesta 700"
-#         r'(?:sale\s+en|son|cuesta|vale|esta\s+en|está\s+en)\s+(\d+(?:[.,]\d+)?)',
-        
-#         # "subio a 400", "bajo a 300"
-#         r'(subió|subio|bajó|bajo)\s+(?:a\s+)?(\d+(?:[.,]\d+)?)',
-        
-#         # "precio: 500", "valor: 300"
-#         r'(?:precio|valor|costo|costó)\s*:?\s*(\d+(?:[.,]\d+)?)',
-        
-#         # "por 800", "a 600", "desde 400"
-#         r'(?:por|a|desde|hasta)\s+(\d+(?:[.,]\d+)?)',
-        
-#         # Descuentos porcentuales
-#         r'(\d+)%\s*(?:off|de\s+descuento|descuento)',
-#         r'rebajado\s+(?:a\s+)?(\d+(?:[.,]\d+)?)'
-#     ]
-    
-#     # Procesar patrones de monedas
-#         # Procesar patrones de monedas
-#     for i, pattern in enumerate(currency_patterns):
-#         matches = re.findall(pattern, text, re.IGNORECASE)
-
-#         if i == 0:
-#             monetary_data['currency_ranges'] = matches
-
-#         elif i == 1:
-#             monetary_data['currency_ranges_extended'] = matches
-
-#         elif i == 2:  # 20 en clasica
-#             monetary_data['currency_in_format'] = matches
-
-#         elif i == 3:  # 20 clasica
-#             monetary_data['currency_without_en'] = matches
-
-#         elif i == 4:  # simple: 20 usd
-#             monetary_data['monedas_explicitas'] = matches
-
-#         elif i == 5:  # con símbolos: $20
-#             monetary_data['currency_with_symbols'] = matches
-
-#         elif i == 6:  # decimales: 75.50 usd
-#             monetary_data['currency_decimal'] = matches
-
-    
-#     # Procesar patrones implicitos
-#     for i, pattern in enumerate(implicit_patterns):
-#         matches = re.findall(pattern, text, re.IGNORECASE)
-#         if i == 0:
-#             monetary_data['precios_implicitos'] = matches
-#         elif i == 1:
-#             monetary_data['price_changes'] = matches
-#         elif i == 2:
-#             monetary_data['labeled_prices'] = matches
-#         elif i == 3:
-#             monetary_data['preposition_prices'] = matches
-#         elif i == 4:
-#             monetary_data['discounts_percent'] = matches
-#         elif i == 5:
-#             monetary_data['discounts_absolute'] = matches
-    
-#     return monetary_data
-
 def _extract_monetary_patterns(text: str) -> dict:
     """
     Extrae patrones relacionados con dinero y precios usando expresiones regulares.
@@ -252,7 +142,6 @@ def _extract_monetary_patterns(text: str) -> dict:
 
     return monetary_data
 
-
 def _extract_date_patterns(text: str) -> dict:
     """
     Extrae patrones relacionados con fechas y tiempos usando expresiones regulares.
@@ -330,10 +219,56 @@ def _extract_date_patterns(text: str) -> dict:
                 date_data[category].extend(matches)
     
     return date_data
+
+# def analyze_text_patterns(text: str) -> str:
+#     """
+#     Analiza el texto y lo enriquece con informacion sobre los patrones encontrados.
+#     Esta funcion es util para visualizar rapidamente que se ha detectado.
+#     """
+#     patterns = extract_regex_patterns(text)
+    
+#     elementos_detectados = []
+    
+#     # Resumen de patrones monetarios
+#     total_monetary = (
+#         len(patterns.get('monedas_explicitas', [])) +
+#         len(patterns.get('precios_implicitos', [])) +
+#         len(patterns.get('currency_ranges', []))
+#     )
+#     if total_monetary > 0:
+#         elementos_detectados.append(f"{total_monetary} referencias monetarias")
+    
+#     # Resumen de patrones de fecha
+#     total_dates = sum(len(patterns.get(key, [])) for key in patterns if key.startswith('dates_'))
+#     if total_dates > 0:
+#         elementos_detectados.append(f"{total_dates} referencias de fecha")
+    
+#     # Otros patrones importantes
+#     if patterns.get('emails'):
+#         elementos_detectados.append(f"{len(patterns['emails'])} emails")
+    
+#     if patterns.get('phone_numbers'):
+#         valid_phones = [p for p in patterns['phone_numbers'] if p and re.search(r'\d', p)]
+#         if valid_phones:
+#             elementos_detectados.append(f"{len(valid_phones)} telefonos")
+    
+#     if patterns.get('urls_raw'):
+#         elementos_detectados.append(f"{len(patterns['urls_raw'])} enlaces")
+    
+#     if patterns.get('hashtags'):
+#         elementos_detectados.append(f"{len(patterns['hashtags'])} hashtags")
+    
+#     if patterns.get('mentions'):
+#         elementos_detectados.append(f"{len(patterns['mentions'])} menciones")
+    
+#     if elementos_detectados:
+#         return f"{text} [Patrones: {', '.join(elementos_detectados)}]"
+    
+#     return text
+
 def analyze_text_patterns(text: str) -> str:
     """
-    Analiza el texto y lo enriquece con informacion sobre los patrones encontrados.
-    Esta funcion es util para visualizar rapidamente que se ha detectado.
+    Analiza el texto y lo enriquece con información sobre los patrones encontrados.
     """
     patterns = extract_regex_patterns(text)
     
@@ -360,7 +295,7 @@ def analyze_text_patterns(text: str) -> str:
     if patterns.get('phone_numbers'):
         valid_phones = [p for p in patterns['phone_numbers'] if p and re.search(r'\d', p)]
         if valid_phones:
-            elementos_detectados.append(f"{len(valid_phones)} telefonos")
+            elementos_detectados.append(f"{len(valid_phones)} teléfonos")
     
     if patterns.get('urls_raw'):
         elementos_detectados.append(f"{len(patterns['urls_raw'])} enlaces")
