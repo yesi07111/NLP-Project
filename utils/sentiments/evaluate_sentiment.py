@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix, classification_report
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sentiment_rules import analyze_sentiment
+from utils.sentiments.sentiment_rules import analyze_sentiment
 
 def load_test_data(filepath):
     """Load test data from CSV file."""
@@ -25,9 +25,9 @@ def predict_sentiment(texts):
     for text in texts:
         result = analyze_sentiment(text)
         # Map sentiment labels to numerical values
-        if result['label'] == 'positivo':
+        if result['score'] > 0:
             pred_labels.append(1)
-        elif result['label'] == 'negativo':
+        elif result['score'] < 0:
             pred_labels.append(-1)
         else:  # neutro
             pred_labels.append(0)
@@ -82,7 +82,7 @@ def plot_confusion_matrix(cm, labels):
 
 def main():
     # Load test data
-    test_file = 'utils/message_data.csv'
+    test_file = input("Ruta del dataset: ")
     texts, true_labels = load_test_data(test_file)
     
     # Make predictions
@@ -118,3 +118,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -508,3 +508,7 @@ media_*
 _cache
 .vscode
 .venv
+
+utils/sentiments/results
+utils/sentiments/datasets
+utils/sentiments/models

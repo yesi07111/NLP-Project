@@ -766,7 +766,7 @@ class AsyncWorker(QThread):
                 return
             
             # Importar y usar el módulo de análisis de sentimientos
-            from utils.sentiment_analysis import get_sentiment_summary
+            from utils.sentiments.sentiment_analysis import get_sentiment_summary
             summary = get_sentiment_summary(messages)
             
             # Guardar el resumen en un archivo para la UI

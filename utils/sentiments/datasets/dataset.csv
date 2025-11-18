@@ -1,0 +1,301 @@
+texto,sentimiento,categoria
+Excelente atención y muy buena disposición en el servicio. Recomendado.,1,1
+Los productos son de alta calidad y siempre llegan a tiempo. Muy satisfecho.,1,1
+Me encanta el diseño y la funcionalidad de la aplicación. Es intuitiva y fácil de usar.,1,1
+"Estoy muy contento con el producto, superó mis expectativas en todos los sentidos.",1,1
+"El servicio postventa fue excelente, resolvieron mi problema de inmediato.",1,1
+"Muy mala experiencia con la compra, el producto llegó en mal estado.",0,1
+El servicio al cliente fue poco profesional y no resolvieron mis problemas.,0,1
+"Me siento decepcionado, la calidad no es como la prometen en la publicidad.",0,1
+Tardaron demasiado en responder y no solucionaron mi inconveniente.,0,1
+"No recomendaría este servicio, tuve problemas desde el principio.",0,1
+"La exposición de arte fue increíble, muy bien organizada y con grandes obras.",1,2
+"El evento cultural superó mis expectativas, hubo mucho talento en cada presentación.",1,2
+El museo cuenta con exhibiciones interactivas y muy educativas. Ideal para la familia.,1,2
+"La programación del festival fue variada y atractiva, disfruté cada actividad.",1,2
+"Asistir al concierto fue una experiencia única, la música y el ambiente fueron excelentes.",1,2
+"El evento cultural fue una decepción, estuvo mal organizado y el audio fue terrible.",0,2
+"La exposición no fue interesante, muy pocas piezas y mala distribución.",0,2
+El museo no tiene muchas actividades y es bastante aburrido.,0,2
+"No disfruté el festival, la programación fue monótona y poco atractiva.",0,2
+"La calidad de las presentaciones fue baja, esperaba mucho más.",0,2
+"El nuevo programa educativo es excelente, los estudiantes están motivados.",1,3
+Las clases interactivas han aumentado el interés de los alumnos en aprender.,1,3
+La plataforma educativa es muy completa y fácil de usar.,1,3
+Las actividades extracurriculares complementan muy bien la educación formal.,1,3
+"El colegio ha mejorado sus instalaciones, es un ambiente cómodo y moderno.",1,3
+"Las instalaciones de la escuela están en pésimas condiciones, requieren mantenimiento urgente.",0,3
+Falta de recursos en el colegio afecta la calidad de la educación.,0,3
+La plataforma educativa es lenta y difícil de navegar.,0,3
+Los estudiantes no reciben suficiente apoyo en sus estudios.,0,3
+El material de estudio está desactualizado y es poco útil.,0,3
+"Me encantó el servicio que recibí, realmente excelente.",1,1
+"El producto superó mis expectativas, muy recomendado.",1,1
+Todo el proceso de compra fue rápido y eficiente.,1,1
+El equipo de atención al cliente fue muy amable.,1,1
+La entrega fue puntual y el producto llegó en buen estado.,1,1
+El servicio al cliente fue pésimo y no resolvió mi problema.,0,1
+No estoy satisfecho con la calidad del producto.,0,1
+El proceso de compra fue confuso y lento.,0,1
+La entrega tardó mucho más de lo esperado.,0,1
+El producto llegó dañado y no cumplen con el reemplazo.,0,1
+La exposición de arte fue inspiradora y bien organizada.,1,2
+El museo cuenta con una colección impresionante.,1,2
+El evento cultural fue enriquecedor y entretenido.,1,2
+La obra de teatro superó todas mis expectativas.,1,2
+La feria cultural mostró una gran diversidad de tradiciones.,1,2
+La exposición estaba desordenada y sin organización.,0,2
+El museo estaba vacío y sin actividades interesantes.,0,2
+El evento cultural fue aburrido y sin nada especial.,0,2
+La obra de teatro careció de emoción y profesionalismo.,0,2
+La feria cultural fue decepcionante y sin variedad.,0,2
+El curso en línea fue muy completo y bien estructurado.,1,3
+Los profesores están muy capacitados y comprometidos.,1,3
+La plataforma educativa es fácil de usar y completa.,1,3
+Las clases en línea me ayudaron a mejorar mis habilidades.,1,3
+El ambiente de aprendizaje es muy estimulante.,1,3
+El curso en línea fue confuso y mal estructurado.,0,3
+Los profesores no respondieron mis dudas.,0,3
+La plataforma educativa es difícil de navegar.,0,3
+Las clases en línea no cumplieron mis expectativas.,0,3
+El ambiente de aprendizaje es desmotivador.,0,3
+"La experiencia en este restaurante fue realmente excepcional, el ambiente acogedor y la comida deliciosa hicieron de nuestra velada una ocasión especial.",1,1
+"Estoy muy satisfecho con el servicio al cliente de esta empresa, resolvieron todas mis dudas con rapidez y amabilidad, es difícil encontrar atención así.",1,1
+"La última actualización de la aplicación ha mejorado muchísimo su rendimiento, ahora es rápida, intuitiva y muy fácil de usar, la recomiendo totalmente.",1,1
+"La calidad de los productos que compré superó mis expectativas, no solo son duraderos sino también estéticamente agradables, una compra excelente.",1,1
+"La película que vi el fin de semana fue impresionante, la trama estaba bien desarrollada y los efectos visuales eran espectaculares, me dejó sin palabras.",1,1
+"Lamentablemente, la atención en el restaurante dejó mucho que desear, el servicio fue lento y la comida llegó fría, no pienso regresar.",0,1
+"Tuve una experiencia bastante negativa con el servicio técnico, no lograron solucionar mi problema y solo generaron más confusión.",0,1
+"El producto que adquirí se dañó al poco tiempo de uso y el servicio postventa no me brindó ninguna solución, muy decepcionante.",0,1
+"La aplicación es extremadamente lenta y difícil de navegar, cada vez que la uso siento que pierdo más tiempo del que ahorro.",0,1
+"La película que vi fue una pérdida de tiempo, el guion era predecible y las actuaciones nada convincentes, no la recomiendo.",0,1
+"La exposición de arte moderno en el museo fue maravillosa, cada obra estaba llena de vida y creatividad, un deleite para los amantes del arte.",1,2
+"El concierto de la orquesta sinfónica fue una experiencia impresionante, cada pieza interpretada con una pasión que llegaba al alma, lo disfruté mucho.",1,2
+"La festividad cultural de este año fue realmente asombrosa, las tradiciones, bailes y muestras gastronómicas representaron fielmente nuestra herencia.",1,2
+"El documental que vi sobre las antiguas civilizaciones fue fascinante, muy bien investigado y con imágenes impactantes, muy recomendable.",1,2
+"La visita guiada al sitio arqueológico fue educativa y emocionante, el guía explicaba cada detalle con gran entusiasmo y conocimiento.",1,2
+"El festival cultural de este año fue bastante decepcionante, la organización fue deficiente y las actividades parecían improvisadas.",0,2
+"Visité el museo pero muchas de las exhibiciones estaban cerradas, lo cual fue frustrante, especialmente después de pagar la entrada completa.",0,2
+"La obra de teatro no fue lo que esperaba, el guion carecía de cohesión y las actuaciones no lograron conectar con el público.",0,2
+"El concierto fue una experiencia incómoda debido al mal sonido, apenas se podían entender las letras de las canciones.",0,2
+"La exposición de arte contemporáneo no fue de mi gusto, parecía falta de creatividad y sin un tema claro, me dejó insatisfecho.",0,2
+"La nueva metodología de enseñanza ha logrado que los estudiantes participen más y disfruten del proceso de aprendizaje, es un cambio notable.",1,3
+"Estoy impresionado con la calidad de los recursos educativos disponibles en línea, hacen que el aprendizaje sea accesible y práctico.",1,3
+"La universidad ha implementado programas de tutoría que han sido muy útiles para los alumnos, han ayudado mucho en su desarrollo académico.",1,3
+"La conferencia educativa a la que asistí fue inspiradora, los ponentes eran expertos en su área y brindaron conocimientos muy valiosos.",1,3
+La escuela ha realizado mejoras en sus instalaciones y se nota que los estudiantes están más cómodos y enfocados en sus estudios.,1,3
+"El material educativo está desactualizado y no refleja los avances recientes en la materia, los estudiantes no están aprendiendo lo necesario.",0,3
+"La plataforma de aprendizaje en línea es confusa y difícil de usar, paso más tiempo tratando de entenderla que aprendiendo realmente.",0,3
+"Los recursos para la clase son limitados y muchas veces no están disponibles cuando los necesitamos, lo que afecta el proceso de aprendizaje.",0,3
+"El nivel de los profesores en algunos cursos deja mucho que desear, no están preparados para enseñar y eso se refleja en el desempeño de los alumnos.",0,3
+"Las condiciones de la escuela son bastante deficientes, hay falta de infraestructura adecuada para llevar a cabo las clases correctamente.",0,3
+"La experiencia en este restaurante fue realmente excepcional, un verdadero mosaico de sabores que deleitó cada sentido; el ambiente acogedor y los victuals deliciosos orquestaron una velada inolvidable.",1,1
+"Estoy muy satisfecho con el servicio al cliente de esta empresa; los empleados se encargaron de cada detalle con amabilidad y rapidez, reimaginando lo que uno espera de una atención al cliente.",1,1
+"La última actualización de la aplicación fue un éxito, repleta de mejoras que la hicieron más rápida y fácil de navegar, facilitando una experiencia verdaderamente enriquecedora",1,1
+"La calidad de los productos que adquirí superó todas mis expectativas, construidos con atención y durabilidad, se destacan tanto en diseño como en funcionalidad, un verdadero hallazgo.",1,1
+"La película que vi el fin de semana fue un crucible de emociones, con una trama intrincada y efectos visuales cautivadores; ciertamente la recomendaría a cualquier amante del buen cine.",1,1
+"Lamentablemente, la atención en el restaurante fue un laberinto de problemas, desde el servicio lento hasta la comida fría, fue una experiencia que no deseo repetir.",0,1
+"Mi interacción con el servicio técnico dejó mucho que desear; en lugar de ayudar, solo aumentaron la confusión y el problema inicial, sumergiéndome en una frustrante experiencia.",0,1
+"El producto que compré se deshizo al poco tiempo de uso, una decepción que el servicio postventa no mejoró; en lugar de una solución, recibí excusas.",0,1
+"El producto que compré se deshizo al poco tiempo de uso, una decepción que el servicio postventa no mejoró; en lugar de una solución, recibí excusas.",0,1
+"La película fue una verdadera pérdida de tiempo, con un guion predecible y actuaciones sin vida; la falta de calidad ciertamente fue evidente.",0,1
+"La muestra de arte contemporáneo superó todas mis expectativas, los colores vibrantes y las temáticas sociales transmitían un mensaje profundo y emotivo.",1,2
+"El festival de danza cultural fue increíble, cada actuación reflejaba una riqueza y diversidad cultural que emocionó a todos los asistentes.",1,2
+"El evento de intercambio cultural permitió conocer costumbres y tradiciones de diferentes países, creando un ambiente de aprendizaje y respeto mutuo.",1,2
+"La película histórica que vi recientemente estaba muy bien documentada, los detalles y la ambientación transportaban al espectador a otra época.",1,2
+"El taller de cerámica ancestral me permitió aprender técnicas artesanales milenarias, apreciando aún más el valor del arte tradicional.",1,2
+"El festival cultural fue bastante decepcionante, las actividades no tenían cohesión y parecía que faltaba organización en todo momento.",0,2
+"La exposición de esculturas modernas me dejó indiferente, no logré conectar con el estilo y la falta de contexto de algunas obras.",0,2
+"El evento prometía una experiencia cultural completa, pero resultó ser una presentación monótona sin ningún valor añadido para el público.",0,2
+"Asistí a una obra de teatro que, aunque tenía un guion interesante, la actuación fue tan plana que se perdió todo el dramatismo de la historia.",0,2
+"El museo tenía pocas exposiciones abiertas y la mayoría estaban en malas condiciones, fue una experiencia frustrante para los visitantes.",0,2
+"La nueva plataforma educativa ha facilitado muchísimo el aprendizaje, permite acceder a contenido didáctico de alta calidad en cualquier momento del día.",1,3
+"El programa de tutorías personalizadas ha sido fundamental para mejorar el rendimiento académico de muchos estudiantes, se sienten más seguros y motivados.",1,3
+La reciente inversión en laboratorios escolares ha permitido que los alumnos puedan experimentar y aprender de manera práctica en un entorno seguro.,1,3
+"La biblioteca digital de la universidad ofrece un amplio acceso a artículos, libros y tesis que enriquecen el proceso educativo de manera notable.",1,3
+La implementación de métodos de enseñanza interactivos ha logrado captar el interés de los estudiantes y hacer del aprendizaje una experiencia agradable.,1,3
+"El material de estudio proporcionado está desactualizado y ya no es útil para los temas actuales, los estudiantes no logran profundizar en su aprendizaje.",0,3
+"La plataforma en línea para las clases virtuales es complicada y suele fallar, lo que genera frustración en los estudiantes y afecta el flujo de la clase.",0,3
+Los recursos de aprendizaje son insuficientes y en muchas ocasiones los estudiantes no tienen acceso a lo que necesitan para hacer sus tareas.,0,3
+"El método de enseñanza en algunos cursos es obsoleto, los estudiantes pierden interés porque no encuentran relevancia en lo que están aprendiendo.",0,3
+"Las instalaciones del colegio están en malas condiciones, lo que da una mala imagen y afecta la comodidad y seguridad de los estudiantes.",0,3
+Lo pasamos muy bien en nuestra salida.,1,1
+Nuestra cita fue muy agradable.,1,1
+Me gusta mucho este tipo de helado.,1,1
+Siento que mejoran cada vez más en calidad de sus productos.,1,1
+Esa felicula fue fantastica.,1,1
+Estoy muy decepcionado por como me trataron.,0,1
+Me hiciseron sentir super mal.,0,1
+Lo pasamos horrible en aquella salida.,0,1
+"No quiero voler a salir con ellos, estuvo muy aburrido.",0,1
+En mi opinion está muy mal lo que hizo ella.,0,1
+"La exposición de arte moderno en el museo fue maravillosa, cada obra estaba llena de vida y creatividad, un deleite para los amantes del arte.",1,2
+"El concierto de la orquesta sinfónica fue una experiencia impresionante, cada pieza interpretada con una pasión que llegaba al alma, lo disfruté mucho.",1,2
+"La festividad cultural de este año fue realmente asombrosa, las tradiciones, bailes y muestras gastronómicas representaron fielmente nuestra herencia.",1,2
+"El documental que vi sobre las antiguas civilizaciones fue fascinante, muy bien investigado y con imágenes impactantes, muy recomendable.",1,2
+"La visita guiada al sitio arqueológico fue educativa y emocionante, el guía explicaba cada detalle con gran entusiasmo y conocimiento.",1,2
+"El festival cultural de este año fue bastante decepcionante, la organización fue deficiente y las actividades parecían improvisadas.",0,2
+"Visité el museo pero muchas de las exhibiciones estaban cerradas, lo cual fue frustrante, especialmente después de pagar la entrada completa.",0,2
+"La obra de teatro no fue lo que esperaba, el guion carecía de cohesión y las actuaciones no lograron conectar con el público.",0,2
+"El concierto fue una experiencia incómoda debido al mal sonido, apenas se podían entender las letras de las canciones.",0,2
+"La exposición de arte contemporáneo no fue de mi gusto, parecía falta de creatividad y sin un tema claro, me dejó insatisfecho. ",0,2
+"La nueva metodología de enseñanza ha logrado que los estudiantes participen más y disfruten del proceso de aprendizaje, es un cambio notable.",1,3
+"Estoy impresionado con la calidad de los recursos educativos disponibles en línea, hacen que el aprendizaje sea accesible y práctico.",1,3
+"La universidad ha implementado programas de tutoría que han sido muy útiles para los alumnos, han ayudado mucho en su desarrollo académico. ",1,3
+"La conferencia educativa a la que asistí fue inspiradora, los ponentes eran expertos en su área y brindaron conocimientos muy valiosos. ",1,3
+La escuela ha realizado mejoras en sus instalaciones y se nota que los estudiantes están más cómodos y enfocados en sus estudios. ,1,3
+"El material educativo está desactualizado y no refleja los avances recientes en la materia, los estudiantes no están aprendiendo lo necesario. ",0,3
+"La plataforma de aprendizaje en línea es confusa y difícil de usar, paso más tiempo tratando de entenderla que aprendiendo realmente. ",0,3
+"Los recursos para la clase son limitados y muchas veces no están disponibles cuando los necesitamos, lo que afecta el proceso de aprendizaje. ",0,3
+"El nivel de los profesores en algunos cursos deja mucho que desear, no están preparados para enseñar y eso se refleja en el desempeño de los alumnos. ",0,3
+"Las condiciones de la escuela son bastante deficientes, hay falta de infraestructura adecuada para llevar a cabo las clases correctamente. ",0,3
+"La atención en la tienda fue excepcional, el personal fue muy amable y servicial.",1,1
+"El libro que leí recientemente me inspiró profundamente, no podía dejar de pensar en sus enseñanzas.",1,1
+"La clase de yoga que tomé fue revitalizante, el instructor fue muy profesional y atento.",1,1
+"La decoración de la habitación del hotel era encantadora, me sentí como en casa.",1,1
+"Disfruté mucho del viaje, los paisajes eran impresionantes y la gente muy acogedora.",1,1
+La comida en el restaurante estaba insípida y no cumplió con mis expectativas.,0,1
+"El servicio al cliente fue deficiente, no respondieron mis correos y me sentí ignorado.",0,1
+"La última actualización de la aplicación trajo más problemas que soluciones, es frustrante.",0,1
+"La calidad de los zapatos que compré fue muy baja, se rompieron en poco tiempo.",0,1
+"La película que vi fue un verdadero fiasco, no logró captar mi interés en ningún momento.",0,1
+"La conferencia sobre historia antigua fue muy interesante, el conferenciante tenía un gran conocimiento sobre el tema.",1,2
+"El festival de música folclórica fue una verdadera celebración de nuestras raíces, con música y bailes tradicionales hermosos.",1,2
+"La visita al museo de historia natural fue una experiencia emocionante, con exposiciones interactivas y bien explicadas.",1,2
+"El libro que leí sobre la cultura japonesa fue fascinante, me dio una nueva perspectiva sobre su forma de vida.",1,2
+"La exposición de fotografía de viajes fue inspiradora, con imágenes impresionantes de diferentes partes del mundo.",1,2
+"La exposición de arte moderno fue confusa y sin sentido, con obras que no tenían una conexión clara entre ellas.",0,2
+"El concierto de música clásica fue una decepción, con un mal sonido y artistas que no estaban a la altura de las expectativivas.",0,2
+"La visita al museo de historia fue decepcionante, con exposiciones anticuadas y sin una actualización en muchos años.",0,2
+"El libro que leí sobre la cultura china fue aburrido y sin interés, con una escritura pesada y difícil de seguir.",0,2
+"La exhibición de fotografía de viajes fue decepcionante, con imágenes sin inspiración y sin una historia que contar.",0,2
+"La nueva plataforma educativa ha facilitado el aprendizaje, permitiendo a los estudiantes acceder a recursos de alta calidad en cualquier momento.",1,3
+"El programa de tutorías personalizadas ha sido fundamental para mejorar el rendimiento académico, haciendo que los estudiantes se sientan más seguros y motivados.",1,3
+La reciente inversión en laboratorios escolares ha permitido a los alumnos experimentar y aprender de manera práctica en un entorno seguro.,1,3
+"La biblioteca digital de la universidad ofrece un acceso amplio a artículos, libros y tesis que enriquecen notablemente el proceso educativo.",1,3
+"La implementación de métodos de enseñanza interactivos ha logrado captar el interés de los estudiantes, haciendo del aprendizaje una experiencia agradable.",1,3
+"El material de estudio proporcionado está desactualizado y ya no es útil para los temas actuales, lo que limita el aprendizaje de los estudiantes.",0,3
+"La plataforma en línea para las clases virtuales es complicada y suele fallar, generando frustración en los estudiantes y afectando el flujo de la clase.",0,3
+"Los recursos de aprendizaje son insuficientes, y en muchas ocasiones los estudiantes no tienen acceso a lo que necesitan para hacer sus tareas.",0,3
+"El método de enseñanza en algunos cursos es obsoleto, lo que provoca que los estudiantes pierdan interés y no encuentren relevancia en lo que aprenden.",0,3
+"Las instalaciones del colegio están en malas condiciones, lo que afecta la comodidad y seguridad de los estudiantes.",0,3
+"La comida en este café es deliciosa, cada plato que probé fue una verdadera delicia.",1,1
+"La música en vivo en el bar fue increíble, crearon un ambiente perfecto para disfrutar la noche.",1,1
+"Estoy muy contento con mi compra, el producto es de alta calidad y cumple con lo prometido.",1,1
+"La serie que empecé a ver es adictiva, cada episodio me deja con ganas de más.",1,1
+"La atención en el spa fue maravillosa, me sentí completamente relajado después del tratamiento.",1,1
+"La atención en la tienda fue muy mala, el personal parecía desinteresado.",0,1
+"El hotel no cumplió con lo prometido, la habitación estaba sucia y descuidada.",0,1
+"La experiencia en el evento fue decepcionante, la organización dejó mucho que desear.",0,1
+"La música en el bar era demasiado alta, no podía conversar con mis amigos.",0,1
+"La clase de cocina fue un desastre, el instructor no sabía explicar bien.",0,1
+"La clase de cocina internacional fue una delicia, pudimos aprender a cocinar platos típicos de diferentes países.",1,2
+"La película biográfica sobre el artista fue muy conmovedora, mostrando su lucha y pasión por el arte.",1,2
+"La visita al sitio histórico fue una lección de historia viva, con guías expertos que explicaban cada detalle.",1,2
+"La exhibición de arte popular fue colorida y alegre, con obras que reflejaban la cultura local.",1,2
+"La clase magistral sobre literatura fue muy enriquecedora, con un profesor apasionado y experto en el tema.",1,2
+"La exposición de arte contemporáneo fue decepcionante, muchas obras parecían falta de creatividad y sin un tema claro.",0,2
+"El concierto de música clásica fue un fiasco, el sonido era deficiente y los músicos no estaban bien ensayados.",0,2
+"La festividad cultural de este año fue bastante desorganizada, con actividades que no cumplían con las expectativas.",0,2
+El documental que vi sobre la historia del arte fue aburrido y no aportó nada nuevo al tema.,0,2
+"La visita al museo fue frustrante, muchas exhibiciones estaban cerradas y no había información suficiente.",0,2
+"Los talleres extracurriculares han fomentado el desarrollo de habilidades prácticas y creativas en los estudiantes, complementando su educación formal.",1,3
+"La integración de tecnología en el aula ha facilitado la colaboración entre estudiantes, promoviendo un aprendizaje más dinámico y participativo.",1,3
+"Los programas de intercambio estudiantil han ampliado los horizontes culturales de los alumnos, enriqueciendo su formación personal y académica.",1,3
+"La formación continua de los docentes ha mejorado la calidad de la enseñanza, ya que están actualizados en las mejores prácticas educativas.",1,3
+"La participación en proyectos comunitarios ha permitido a los estudiantes aplicar sus conocimientos en situaciones reales, promoviendo el aprendizaje significativo.",1,3
+La falta de apoyo emocional y psicológico en las escuelas ha dejado a muchos estudiantes sin la ayuda que necesitan para enfrentar sus desafíos.,0,3
+"La sobrecarga de tareas y exámenes ha generado un ambiente de estrés entre los estudiantes, afectando su bienestar y rendimiento académico.",0,3
+La escasez de profesores calificados en ciertas áreas ha limitado la calidad de la educación que reciben los estudiantes.,0,3
+La falta de comunicación entre padres y docentes ha dificultado el seguimiento del progreso académico de los estudiantes.,0,3
+"Las políticas educativas restrictivas han limitado la creatividad y la innovación en el aula, haciendo que el aprendizaje sea monótono.",0,3
+"La conferencia a la que asistí fue muy enriquecedora, aprendí mucho sobre el tema.",1,1
+"La experiencia en el parque de atracciones fue inolvidable, ¡me divertí como un niño!",1,1
+"La comida en la boda fue exquisita, todos los invitados quedaron encantados.",1,1
+"La nueva colección de ropa es fabulosa, los diseños son modernos y elegantes.",1,1
+"La atención al cliente en esta tienda es insuperable, siempre están dispuestos a ayudar.",1,1
+"La entrega de mi pedido se retrasó mucho, y no recibí ninguna explicación.",0,1
+"La serie que empecé a ver fue aburrida, no logré conectar con los personajes.",0,1
+"La atención en el spa fue muy impersonal, no me sentí valorado como cliente.",0,1
+"La decoración de la tienda era confusa y poco atractiva, no me invitó a quedarme.",0,1
+"La calidad del servicio en el restaurante fue muy baja, tardaron mucho en atendernos.",0,1
+"La feria del libro fue un paraíso para los amantes de la lectura, con autores y editores presentando sus últimas obras.",1,2
+"La visita al teatro antiguo fue una experiencia única, con una representación teatral que reflejaba la cultura clásica.",1,2
+"El concierto de música tradicional fue una verdadera delicia, con instrumentos y melodías que evocaban emociones profundas.",1,2
+"La exposición de arte religioso fue muy interesante, con obras que reflejaban la fe y la espiritualidad de diferentes culturas.",1,2
+"La clase de danza folclórica fue una experiencia divertida y alegre, con música y movimientos que reflejaban la cultura local.",1,2
+"La obra de teatro no logró conectar con el público, el guion era confuso y las actuaciones poco convincentes.",0,2
+"El festival de cine no cumplió con lo prometido, muchas películas eran de baja calidad y mal producidas.",0,2
+"La clase de pintura fue decepcionante, el instructor no ofreció retroalimentación útil y el ambiente era tenso.",0,2
+"La feria del libro fue una decepción, había muy pocos autores presentes y las actividades eran poco atractivas.",0,2
+"La exposición de fotografía fue insípida, con imágenes que no contaban una historia y carecían de originalidad.",0,2
+Las actividades de aprendizaje basadas en proyectos han motivado a los estudiantes a trabajar en equipo y desarrollar habilidades de resolución de problemas.,1,3
+La atención individualizada que reciben algunos estudiantes ha marcado una diferencia notable en su autoestima y rendimiento académico.,1,3
+La diversidad de cursos ofrecidos en la institución permite a los estudiantes explorar diferentes áreas y descubrir sus verdaderos intereses.,1,3
+Las conferencias y charlas con expertos en diversas áreas han inspirado a los estudiantes a pensar críticamente y a ampliar su visión del mundo.,1,3
+"La creación de espacios de aprendizaje colaborativo ha fomentado la interacción entre estudiantes, mejorando su capacidad de trabajo en equipo.",1,3
+La falta de recursos tecnológicos en las aulas ha limitado el acceso de los estudiantes a herramientas de aprendizaje modernas.,0,3
+La escasa atención a la educación emocional ha dejado a muchos estudiantes sin las habilidades necesarias para manejar el estrés y las relaciones interpersonales.,0,3
+Las clases son excesivamente teóricas y no brindan oportunidades para aplicar los conocimientos en situaciones prácticas.,0,3
+La desmotivación de los estudiantes es evidente debido a la falta de reconocimiento y apoyo por parte de los docentes.,0,3
+"La escasez de actividades extracurriculares ha limitado el desarrollo integral de los estudiantes, dejándolos sin oportunidades para explorar sus intereses.",0,3
+"La obra de teatro que vi fue conmovedora, los actores transmitieron emociones profundas.",1,1
+"Me encantó la exposición de arte, las obras eran impresionantes y muy creativas.",1,1
+"La app que descargué es muy útil, me ha facilitado la organización de mis tareas.",1,1
+"El servicio de entrega fue rápido y eficiente, recibí mi pedido antes de lo esperado.",1,1
+"La experiencia en el gimnasio ha sido muy positiva, los entrenadores son motivadores.",1,1
+"El producto que compré no funcionó como se esperaba, fue una gran decepción.",0,1
+"La charla que asistí fue poco interesante, no aprendí nada nuevo.",0,1
+"La experiencia en el parque de atracciones fue estresante, había demasiada gente.",0,1
+"La comida en la boda fue mediocre, no cumplió con lo que se prometió.",0,1
+"La atención en la clínica fue fría y poco profesional, no me sentí cómodo.",0,1
+"La exhibición de arte abstracto fue impresionante, con obras que desafiaban la imaginación y el entendimiento.",1,2
+"La conferencia sobre la cultura africana fue muy interesante, con un ponente que compartió su conocimiento y experiencia sobre el tema.",1,2
+"La visita al museo del cine fue una experiencia educativa y entretenida, con exposiciones que mostraban la historia y evolución del cine.",1,2
+"La exhibición de arte naíf fue colorida y alegre, con obras que reflejaban la inocencia y la creatividad de los artistas.",1,2
+"La clase de música clásica fue una experiencia enriquecedora, con un profesor que explicaba cada detalle de las obras interpretadas.",1,2
+"La clase de cocina fue un desastre, los ingredientes no estaban bien preparados y los platos no tenían sabor.",0,2
+"La película biográfica que vi fue aburrida, no logró captar la esencia del personaje que retrataba.",0,2
+"La visita al sitio histórico fue decepcionante, la falta de información hizo que la experiencia fuera poco interesante.",0,2
+"La exhibición de arte popular fue confusa, con obras que no parecían tener un hilo conductor.",0,2
+"La conferencia sobre cultura indígena fue superficial, no profundizó en los temas importantes y fue poco informativa.",0,2
+"El enfoque en la educación emocional ha ayudado a los estudiantes a desarrollar habilidades sociales y de autoconocimiento, esenciales para su futuro.",1,3
+"Las becas y ayudas económicas han permitido que más estudiantes accedan a una educación de calidad, independientemente de su situación económica.",1,3
+La implementación de programas de mentoría ha brindado a los estudiantes la oportunidad de recibir orientación y apoyo en su desarrollo académico y personal.,1,3
+La utilización de recursos multimedia en las clases ha hecho que el aprendizaje sea más atractivo y accesible para todos los estudiantes.,1,3
+La conexión con empresas locales para prácticas profesionales ha permitido a los estudiantes ganar experiencia laboral valiosa mientras estudian.,1,3
+"Las condiciones de los baños y otras instalaciones escolares son inadecuadas, lo que afecta la higiene y comodidad de los estudiantes.",0,3
+La falta de capacitación continua para los docentes ha llevado a métodos de enseñanza obsoletos que no conectan con los estudiantes de hoy.,0,3
+La presión por obtener altas calificaciones ha generado un ambiente de competencia poco saludable entre los estudiantes.,0,3
+La burocracia en el sistema educativo ha dificultado la implementación de cambios necesarios para mejorar la calidad de la educación.,0,3
+La falta de programas de inclusión ha dejado a estudiantes con necesidades especiales sin el apoyo adecuado para su aprendizaje.,0,3
+"El viaje en tren fue muy cómodo, el paisaje que vi era espectacular.",1,1
+La charla motivacional que escuché me llenó de energía y ganas de seguir adelante.,1,1
+"La calidad del café en esta cafetería es excepcional, lo mejor que he probado.",1,1
+"La atención en la clínica fue excelente, me sentí muy bien cuidado durante mi visita.",1,1
+"El festival al que asistí fue una experiencia única, la música y el ambiente eran increíbles.",1,1
+"El viaje en tren fue incómodo, los asientos eran muy estrechos.",0,1
+"La exposición de arte fue aburrida, no había nada que realmente llamara mi atención.",0,1
+"La app que descargué es muy complicada de usar, no la recomiendo.",0,1
+"La obra de teatro fue decepcionante, los actores no estaban bien preparados.",0,1
+"El festival al que asistí fue un caos, la organización fue muy deficiente.",0,1
+"La visita a la galería de arte fue inspiradora, cada obra reflejaba la diversidad y creatividad de los artistas locales.",1,2
+"El festival de música folclórica fue una celebración vibrante de nuestras tradiciones, con bailes y canciones alegres.",1,2
+"La charla sobre la cultura indígena fue muy educativa, me ayudó a entender mejor sus tradiciones y creencias.",1,2
+"La proyección de cortometrajes independientes fue refrescante, con historias originales y creativas.",1,2
+"La exhibición de arte naíf fue colorida y alegre, mostrando la simplicidad y belleza de la vida cotidiana.",1,2
+"La clase de danza que tomé fue decepcionante, el instructor no tenía la paciencia necesaria para enseñar a principiantes.",0,2
+"La exposición de arte moderno fue confusa y pretenciosa, muchas obras parecían más un capricho que una expresión artística genuina.",0,2
+"El festival de música fue una gran decepción, la calidad de los artistas era muy baja y el sonido era deficiente.",0,2
+"La película que vi sobre la historia de la música fue aburrida, no logró mantener mi interés en ningún momento.",0,2
+"La visita al museo de ciencia fue frustrante, las exhibiciones estaban desactualizadas y poco interactivas, lo que hizo que la experiencia fuera monótona.",0,2
+La cultura de retroalimentación constante entre docentes y estudiantes ha creado un ambiente de aprendizaje más abierto y constructivo.,1,3
+"Las actividades de voluntariado han fomentado la responsabilidad social en los estudiantes, enseñándoles la importancia de contribuir a su comunidad.",1,3
+La promoción de la lectura desde temprana edad ha cultivado en los estudiantes un amor por el conocimiento y la curiosidad intelectual.,1,3
+La colaboración entre padres y docentes ha mejorado la comunicación y el apoyo en el proceso educativo de los estudiantes.,1,3
+La creación de clubes estudiantiles ha permitido a los alumnos explorar sus intereses y desarrollar habilidades de liderazgo y organización.,1,3
+La escasa comunicación entre las diferentes áreas de la institución ha generado confusión y descoordinación en el proceso educativo.,0,3
+La ausencia de un enfoque en habilidades prácticas ha dejado a los estudiantes mal preparados para el mundo laboral.,0,3
+La falta de incentivos para la lectura ha resultado en un bajo interés por los libros entre los estudiantes.,0,3
+"La cultura del ""examen"" ha desplazado el verdadero aprendizaje, enfocándose más en pasar pruebas que en comprender los contenidos.",0,3
+La falta de espacios seguros y acogedores en la escuela ha hecho que algunos estudiantes se sientan aislados y no apoyados.,0,3
