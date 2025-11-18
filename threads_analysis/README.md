@@ -23,15 +23,232 @@ Un sistema avanzado para detectar relaciones de respuesta implícitas entre mens
 - **Fortaleza**: Máxima precisión en detección de relaciones contextuales
 - **Uso**: Análisis profundo de pares de mensajes para casos difíciles
 
-### 🤔 **¿Por qué Tres Modelos?**
+---
 
-| Modelo        | Velocidad | Precisión | Caso de Uso                      |
-| ------------- | --------- | --------- | -------------------------------- |
-| Bi-Encoder A  | 🟡 Media   | 🟢 Alta    | Búsqueda semántica multilingüe   |
-| Bi-Encoder B  | 🟢 Alta    | 🟡 Media   | Filtrado rápido y eficiente      |
-| Cross-Encoder | 🔴 Baja    | 🟢 Máxima  | Decisión final en casos ambiguos |
+Perfecto. Te dejo **el README actualizado**, con:
+
+### ✔ Sección antigua reemplazada por la nueva explicación del sistema automático de selección de folds
+
+### ✔ Inclusión de la explicación de los **modelos clásicos** (GaussianNB, LogisticRegression, LightGBM, RandomForest)
+
+### ✔ Integrado sin alterar la estructura del documento
+
+### ✔ Estilo consistente con el resto del README
 
 ---
+
+# 🚀 Pipeline de Detección de Hilos en Conversaciones (README Actualizado)
+
+Un sistema avanzado para detectar relaciones de respuesta implícitas entre mensajes usando **modelos neuronales**, **modelos clásicos**, **selección inteligente de folds**, y **datos enriquecidos** a gran escala.
+
+---
+
+## 📊 **Arquitectura del Sistema**
+
+### 🎯 **Modelos Basados en Deep Learning**
+
+#### 1. **Bi-Encoder A** 🏎️
+
+* **Modelo**: `paraphrase-multilingual-mpnet-base-v2`
+* **Uso**: Embeddings de semántica profunda
+* **Fortaleza**: Excelente rendimiento multilingüe
+
+#### 2. **Bi-Encoder B** ⚡
+
+* **Modelo**: `sentence-transformers/all-MiniLM-L12-v2`
+* **Uso**: Velocidad máxima con buena precisión
+* **Fortaleza**: Ideal para despliegue rápido
+
+#### 3. **Cross-Encoder** 🎯
+
+* **Modelo**: `cross-encoder/ms-marco-MiniLM-L-12-v2`
+* **Uso**: Clasificación contextual fina
+* **Fortaleza**: Máxima precisión en casos ambiguos
+
+---
+
+## 🧮 **Modelos Clásicos Incluidos** 
+
+Además de los modelos neuronales, el pipeline ahora entrena **modelos clásicos de Machine Learning** basados en las features extraídas del dataset:
+
+| Modelo                              | Motivo                                | Ventajas                                |
+| ----------------------------------- | ------------------------------------- | --------------------------------------- |
+| **GaussianNB**                      | Modelo muy ligero                     | Rápido, base line simple                |
+| **Logistic Regression (L2 + SAGA)** | Clasificador lineal robusto           | Estable, rápido, alta interpretabilidad |
+| **LightGBM** (si está disponible)   | Ensamble basado en árboles optimizado | Muy fuerte en features tabulares        |
+| **Random Forest**                   | Modelo por consenso                   | Buen rendimiento y robusto al ruido     |
+
+Cada uno se entrena en cada fold y se **guarda su progreso inmediatamente** en:
+
+```
+fold_X/classical_training_progress.json
+```
+
+Los modelos son exportados como:
+
+```
+gaussian_nb.joblib
+logistic_regression.joblib
+lightgbm.joblib
+random_forest.joblib
+```
+
+Los resultados clásicos **también contribuyen a la comparación global del sistema**.
+
+---
+
+# 📘 Sistema Automático de Selección de Folds en el Entrenamiento 
+
+Este módulo decide automáticamente **qué esquema de validación cruzada** usar:
+
+* **KFold tradicional**
+* **GroupKFold**
+* **Custom Stratified-Group-KFold** (avanzado)
+
+La elección se basa en información generada en:
+
+```
+threads_analysis/models/output/dataset_stats.json
+```
+
+---
+
+## 📊 ¿Qué contiene `dataset_stats.json`?
+
+El **Dataset Analyzer** calcula:
+
+* Número total de ejemplos
+* Conteos por clase globales y por chat
+* Ratios:
+
+  * `pos_ratio`
+  * `neg_ratio`
+  * `hard_ratio`
+* Tamaño por cada `chat_id`
+
+Ejemplo:
+
+```json
+{
+  "total_examples": 2894036,
+  "labels": {...},
+  "chats": {
+    "13": {
+      "total": 764518,
+      "positive": 46205,
+      "negative": 256962,
+      "hard_negative": 461351,
+      "pos_ratio": 0.0604,
+      "neg_ratio": 0.3361,
+      "hard_ratio": 0.6034
+    }
+  },
+  "global_ratio": {
+    "positive": 0.0562,
+    "negative": 0.3823,
+    "hard_negative": 0.5614
+  }
+}
+```
+
+---
+
+# 🧠 Lógica Inteligente de Selección de Folds
+
+### 📌 **Caso 1 — KFold simple**
+
+Se usa cuando:
+
+* No existe `chat_id`
+* O solo existe un único grupo
+
+### 📌 **Caso 2 — GroupKFold**
+
+Se usa cuando:
+
+* Hay suficientes chats (`n_groups >= 3 * n_splits`)
+* La distribución entre chats es relativamente homogénea
+
+Evita mezclar ejemplos de un mismo chat entre train/val.
+
+### 📌 **Caso 3 — Custom Stratified-Group-KFold**
+
+Se usa cuando:
+
+* Hay pocos chats
+* **Pero sus distribuciones son extremadamente diferentes**
+
+#### ¿Cómo funciona?
+
+1. Para cada chat → vector de perfil:
+
+   ```
+   [pos_ratio, neg_ratio, hard_ratio]
+   ```
+2. Se aplica **K-Means** → 1 cluster por fold
+3. Cada cluster representa un “tipo de chat”
+4. Se garantiza que los folds tengan **ratios de clases equilibrados**
+
+Este método es crucial cuando algunos chats son gigantes y otros pequeños, o cuando sus ratios varían enormemente.
+
+---
+
+# 🧩 Beneficios
+
+* Evita fugas entre train/val
+* Mantiene balance entre clases
+* Reduce overfitting
+* Funciona incluso con datasets muy desbalanceados
+* 100% automático según el dataset real
+
+---
+
+# 🤖 Entrenamiento de Modelos
+
+Ahora incluye:
+
+### ✔ 3 Modelos neuronales
+
+### ✔ 4 Modelos clásicos
+
+### ✔ Selección inteligente de folds
+
+### ✔ Reportes completos por fold
+
+---
+
+# 📤 Exportación de Modelos
+
+Deep Learning → ONNX
+Clásicos → `.joblib`
+
+---
+
+# 🧪 Evaluación
+
+La evaluación ahora incluye:
+
+1. Heurísticas
+2. Bi-Encoder A
+3. Bi-Encoder B
+4. Cross-Encoder
+5. **GaussianNB**
+6. **Logistic Regression**
+7. **LightGBM** 
+8. **RandomForest**
+
+Cada uno con:
+
+* F1
+* Precision
+* Recall
+* AUC (modelos neuronales)
+
+El reporte incluye todo:
+
+```
+evaluation_report.json
+```
 
 ## 🏗️ **Pipeline Completo**
 
@@ -59,7 +276,7 @@ threads_analysis/
 ├── knowledge_graph.py              # 🔍 Construcción del grafo + heurísticas reply implícito
 ├── models/
 │   ├── dataset_builder.py          # 🏗️ Construye dataset con hard negatives
-│   ├── triple_model_trainer.py     # 🤖 Entrena los 3 modelos
+│   ├── model_trainer.py     # 🤖 Entrena los modelos
 │   ├── onnx_export.py              # 📤 Exporta modelos a ONNX
 │   ├── evaluation.py               # 🧪 Evalúa vs heurísticas
 │   ├── pipeline_runner.py          # 🚀 Ejecuta TODO el pipeline
@@ -295,15 +512,6 @@ Usuario D: "Hoy hace buen día"               ❌ No relacionado
 
 ---
 
-## 🚀 **Próximos Pasos**
-
-1. **🎯 Despliegue en Producción**: Usar modelos ONNX exportados
-2. **📱 API de Inferencia**: Servicio para detección en tiempo real
-3. **🔧 Fine-tuning Continuo**: Mejora con nuevos datos
-4. **🌐 Multiplataforma**: Ejecución en edge devices
-
----
-
 ## 💡 **¿Por qué este Enfoque?**
 
 ### 🏆 **Ventajas Clave**
@@ -320,4 +528,4 @@ Los modelos ONNX exportados están listos para:
 
 ---
 
-**¿Listo para detectar relaciones en tus conversaciones? ¡Ejecuta el pipeline y descubre insights ocultos! ...Solo si tienes 2 días completos uno para hacer embeddings y otro para entrenar (sin gpu puede que más) y al menos estar dispuesto y con condiciones para bajar > 1.5 GB de espacio total que ocupan los modelos (sin contar los embbedings o el dataset que puede llegar a pesar mucho, con los datos usados peso ~1.4 GB) En fin, que divertidoooo... no me dolió en los datos móviles ni anda jaja** 🎉
+**¿Listo para detectar relaciones en tus conversaciones? ¡Ejecuta el pipeline y descubre insights ocultos! ...Solo si tienes 2 días completos uno para hacer embeddings y otro para entrenar (sin gpu puede que más) y al menos estar dispuesto y con condiciones para bajar > 1.5 GB de espacio total que ocupan los modelos (sin contar los embbedings o el dataset que puede llegar a pesar mucho, con los datos usados peso ~1.4 GB) En fin, que divertidoooo... no me dolió en los datos móviles ni nada jaja... jaja... jaaaaaaa** 🥲🎉
