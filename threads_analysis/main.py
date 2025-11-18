@@ -3,10 +3,12 @@ import json
 import os
 from threads_analysis.knowledge_graph import ConversationGraphBuilder
 from threads_analysis.thread_analyzer import ThreadAnalyzer
+from regex.pattern_analyzer import save_patterns_summary
+from regex.trend_analyzer import generate_comprehensive_report
 
 def process_chat_for_knowledge_graph(chat_filename: str, output_dir: str = "threads_analysis_results"):
     """
-    Procesa un archivo de chat y genera el grafo de conocimiento
+    Procesa un archivo de chat y genera el grafo de conocimiento + nuevos análisis
     """
     print(f"🚀 Procesando: {chat_filename}")
     
@@ -48,10 +50,27 @@ def process_chat_for_knowledge_graph(chat_filename: str, output_dir: str = "thre
         # Analizar hilos
         analyzer = ThreadAnalyzer(builder)
         thread_analysis = analyzer.analyze_conversation_threads(threads)
-        
+
+        # En main.py - solo esta parte necesita cambios:
+
+        print("🔍 Ejecutando análisis de patrones...")
+        # save_patterns_summary ya está modificada para guardar en threads_analysis_results
+        save_patterns_summary(chat_filename, messages)
+
+        print("📈 Ejecutando análisis de tendencias...")
+        # Para tendencias, necesitamos el archivo de patrones recién guardado
+        base_name = os.path.splitext(os.path.basename(chat_filename))[0]
+        # CORRECTO: El archivo de patrones está en threads_analysis_results
+        patterns_file = os.path.join('threads_analysis_results', f"{base_name}_patterns.json")
+        trends_data = generate_comprehensive_report(patterns_file)
+
+        # Guardar el análisis de tendencias en la misma carpeta
+        trends_filename = os.path.join('threads_analysis_results', f"{base_name}_trends.json")
+        with open(trends_filename, 'w', encoding='utf-8') as f:
+            json.dump(trends_data, f, ensure_ascii=False, indent=2, default=str)
+            
         # Guardar resultados
         os.makedirs(output_dir, exist_ok=True)
-        base_name = os.path.splitext(os.path.basename(chat_filename))[0]
         
         # Guardar grafo
         graph_filename = os.path.join(output_dir, f"{base_name}_graph.json")
@@ -74,6 +93,8 @@ def process_chat_for_knowledge_graph(chat_filename: str, output_dir: str = "thre
         print(f"   - Grafo: {graph_filename}")
         print(f"   - Hilos: {threads_filename}")
         print(f"   - Análisis: {analysis_filename}")
+        print(f"   - Patrones: {patterns_file}")
+        print(f"   - Tendencias: {trends_filename}")
         print(f"   - Total nodos: {len(graph.nodes())}")
         print(f"   - Total aristas: {len(graph.edges())}")
         print(f"   - Hilos reconstruidos: {len(threads)}")
@@ -85,7 +106,6 @@ def process_chat_for_knowledge_graph(chat_filename: str, output_dir: str = "thre
         import traceback
         traceback.print_exc()
         return None, None, None
-
 # Ejemplo de uso
 if __name__ == "__main__":
     # Procesar todos los chats en la carpeta

@@ -10,6 +10,8 @@ p.md
 *.session-journal
 best
 fold_*
+guia*
+prompt*
 embedding_cache
 paraphrase-multilingual-mpnet-base-v2
 
@@ -498,6 +500,7 @@ $RECYCLE.BIN/
 # Custom
 *.json
 *.jsonl
+!dataset_stats.json
 !meta.json
 *.html
 media_*
