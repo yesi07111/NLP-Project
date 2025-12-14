@@ -1,3 +1,4 @@
+# sentiment_rules.py
 import spacy
 from utils.sentiments.sentiment_lexicon import (
     LEXICON,
@@ -8,20 +9,29 @@ from utils.sentiments.sentiment_lexicon import (
     NEGATIVE_WORDS
 )
 from pprint import pprint
-from googletrans import Translator
-from nltk.corpus import sentiwordnet as swn
-translator = Translator()
-
-nlp = spacy.load("es_core_news_md")
-
-
-# ================================================================
-#  FUNCIONES AUXILIARES DE TRANSLATOR
-# ================================================================
-
 import json
 import os
+import re
 
+# ================================================================
+#  CONFIGURACIÓN DE TRADUCTOR CON FALLBACK
+# ================================================================
+
+# Intentar importar googletrans con fallback
+try:
+    from googletrans import Translator
+    translator = Translator()
+    GOOGLETRANS_AVAILABLE = True
+except ImportError:
+    print("⚠️  googletrans no disponible, usando traducción manual limitada")
+    GOOGLETRANS_AVAILABLE = False
+    translator = None
+
+# ================================================================
+#  CARGAR NLTK CON FALLBACK
+# ================================================================
+
+SENTIWORDNET_AVAILABLE = False
 FALLBACK_CACHE_FILE = "fallback_cache.json"
 
 # Cargar la caché si existe
@@ -31,16 +41,43 @@ if os.path.exists(FALLBACK_CACHE_FILE):
 else:
     FALLBACK_CACHE = {}  # cache vacía
 
+# Intentar cargar NLTK y SentiWordNet
+try:
+    import nltk
+    # Verificar si tenemos los recursos necesarios
+    try:
+        nltk.data.find('corpora/sentiwordnet')
+    except LookupError:
+        print("⚠️  SentiWordNet no encontrado, descargando...")
+        try:
+            nltk.download('sentiwordnet', quiet=True)
+        except:
+            print("❌ No se pudo descargar SentiWordNet")
+            raise
+    
+    from nltk.corpus import sentiwordnet as swn
+    SENTIWORDNET_AVAILABLE = True
+    print("✅ SentiWordNet cargado correctamente")
+except Exception as e:
+    print(f"⚠️  NLTK/SentiWordNet no disponible: {e}")
+    print("ℹ️  Usando análisis léxico simplificado")
+    SENTIWORDNET_AVAILABLE = False
+    swn = None
+
 def save_fallback_cache():
     """Guarda la caché de fallback en disco."""
-    with open(FALLBACK_CACHE_FILE, "w", encoding="utf-8") as f:
-        json.dump(FALLBACK_CACHE, f, ensure_ascii=False, indent=2)
+    try:
+        with open(FALLBACK_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(FALLBACK_CACHE, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️  Error guardando caché: {e}")
 
 def get_fallback_score(lemma):
     """
     Obtiene el puntaje de una palabra que no está en el léxico:
     - Usa la caché si ya existe
-    - Si no, traduce → consulta SentiWordNet → guarda el resultado
+    - Si no, intenta usar SentiWordNet si está disponible
+    - Si no, usa un diccionario manual básico
     """
     lemma = lemma.lower()
 
@@ -48,38 +85,146 @@ def get_fallback_score(lemma):
     if lemma in FALLBACK_CACHE:
         return FALLBACK_CACHE[lemma]
 
-    # 2. Traducir al inglés
-    try:
-        translated = translator.translate(lemma, src='es', dest='en').text.lower()
-    except Exception:
-        translated = lemma  # fallback de emergencia si falla la traducción
+    # Diccionario manual básico de palabras comunes en español
+    MANUAL_SCORES = {
+        # Positivos
+        'bueno': 0.5, 'buena': 0.5, 'excelente': 0.8, 'genial': 0.7,
+        'fantástico': 0.8, 'perfecto': 0.9, 'maravilloso': 0.8,
+        'increíble': 0.7, 'mejor': 0.6, 'útil': 0.5,
+        
+        # Negativos
+        'malo': -0.5, 'mala': -0.5, 'terrible': -0.8, 'horrible': -0.9,
+        'pésimo': -0.9, 'fatal': -0.8, 'decepcionante': -0.7,
+        'inútil': -0.6, 'peor': -0.7, 'problemático': -0.6,
+        
+        # Neutrales/contextuales
+        'normal': 0.0, 'regular': -0.1, 'aceptable': 0.2,
+        'suficiente': 0.1, 'adecuado': 0.3, 'correcto': 0.3,
+    }
 
-    # 3. Obtener synsets en inglés
-    synsets = list(swn.senti_synsets(translated))
+    # 2. Verificar si está en el diccionario manual
+    if lemma in MANUAL_SCORES:
+        score = MANUAL_SCORES[lemma]
+        FALLBACK_CACHE[lemma] = score
+        save_fallback_cache()
+        return score
 
-    if synsets:
-        synset = synsets[0]  # el más común
+    # 3. Intentar usar SentiWordNet si está disponible
+    if SENTIWORDNET_AVAILABLE and GOOGLETRANS_AVAILABLE:
+        try:
+            # Traducir al inglés
+            translated = translator.translate(lemma, src='es', dest='en').text.lower()
+            
+            # Obtener synsets en inglés
+            synsets = list(swn.senti_synsets(translated))
+            
+            if synsets:
+                synset = synsets[0]  # el más común
+                # Score neto = positivo - negativo
+                net_score = synset.pos_score() - synset.neg_score()
+                scaled_score = round(net_score * 0.5, 4)
+                
+                FALLBACK_CACHE[lemma] = scaled_score
+                save_fallback_cache()
+                return scaled_score
+        except Exception as e:
+            print(f"⚠️  Error usando SentiWordNet para '{lemma}': {e}")
 
-        # Score neto = positivo - negativo (SentiWordNet)
-        net_score = synset.pos_score() - synset.neg_score()
+    # 4. Fallback: análisis léxico básico
+    # Buscar patrones de sufijos comunes
+    positive_patterns = [
+        r'.*(able|ible)$',  # amable, posible
+        r'.*(oso|osa)$',    # amoroso, maravillosa
+        r'.*(ivo|iva)$',    # creativo, positiva
+    ]
+    
+    negative_patterns = [
+        r'.*(oso|osa)$',    # peligroso, asquerosa (algunos son negativos)
+        r'.*(ante)$',       # decepcionante
+        r'.*(or|ora)$',     # traidor, vengadora (contextual)
+    ]
+    
+    for pattern in positive_patterns:
+        if re.match(pattern, lemma):
+            score = 0.3
+            FALLBACK_CACHE[lemma] = score
+            save_fallback_cache()
+            return score
+    
+    for pattern in negative_patterns:
+        if re.match(pattern, lemma):
+            score = -0.3
+            FALLBACK_CACHE[lemma] = score
+            save_fallback_cache()
+            return score
 
-        # Escalar para no dominar tu léxico manual
-        scaled_score = round(net_score * 0.5, 4)
-    else:
-        scaled_score = 0.0  # sin info → neutro
-
-    # 4. Guardar en la caché
-    FALLBACK_CACHE[lemma] = scaled_score
+    # 5. Final fallback: neutro
+    FALLBACK_CACHE[lemma] = 0.0
     save_fallback_cache()
+    return 0.0
 
-    return scaled_score
+# ================================================================
+#  CARGAR SPACY CON FALLBACK
+# ================================================================
 
-
+try:
+    nlp = spacy.load("es_core_news_md")
+    SPACY_AVAILABLE = True
+except Exception as e:
+    print(f"⚠️  No se pudo cargar spaCy es_core_news_md: {e}")
+    print("ℹ️  Usando tokenizador simple")
+    SPACY_AVAILABLE = False
+    
+    class SimpleTokenizer:
+        """Tokenizador simple para cuando spaCy no está disponible"""
+        def __init__(self):
+            self.stemmer = None
+            # Diccionario simple de categorías gramaticales
+            self.pos_tags = {}
+        
+        def __call__(self, text):
+            # Tokenización simple por espacios y puntuación
+            import re
+            tokens = re.findall(r'\b\w+\b', text.lower())
+            return SimpleDoc(tokens)
+    
+    class SimpleDoc:
+        """Documento simple para simular spaCy"""
+        def __init__(self, tokens):
+            self.tokens = [SimpleToken(tok) for tok in tokens]
+            self.sents = [SimpleSent(self.tokens)]
+    
+    class SimpleToken:
+        """Token simple para simular spaCy"""
+        def __init__(self, text):
+            self.text = text
+            self.lemma_ = text.lower()
+            self.lower_ = text.lower()
+            self.pos_ = 'NOUN'  # Asumimos sustantivo por defecto
+            self.dep_ = 'dep'   # Dependencia desconocida
+            self.head = self     # Auto-referencia
+            self.children = []   # Sin hijos
+            self.i = 0           # Índice
+            
+            # Estimar categoría gramatical simple
+            if text.endswith(('ar', 'er', 'ir')):
+                self.pos_ = 'VERB'
+            elif text.endswith(('o', 'a', 'os', 'as')):
+                self.pos_ = 'ADJ'
+            elif text.endswith(('mente')):
+                self.pos_ = 'ADV'
+    
+    class SimpleSent:
+        """Oración simple"""
+        def __init__(self, tokens):
+            self.text = ' '.join(t.text for t in tokens)
+            self.tokens = tokens
+    
+    nlp = SimpleTokenizer()
 
 # ================================================================
 #  FUNCIONES AUXILIARES DE DEPENDENCIAS
 # ================================================================
-
 
 def has_negation(token):
     """
@@ -91,14 +236,17 @@ def has_negation(token):
     NO revisa lefts arbitrarios.
     NO sube varios niveles.
     """
+    if not SPACY_AVAILABLE:
+        # Versión simple sin spaCy
+        text = token.text.lower()
+        return text in NEGATORS or any(child.text.lower() in NEGATORS for child in token.children)
+    
     # 1. Negación sobre el propio token (caso ideal)
     for child in token.children:
         if child.lemma_.lower() in NEGATORS and child.dep_ in ["advmod", "case"]:
             return True
 
     # 2. "no + verbo" afecta objetos del verbo
-    #    ej: "no resolvió mi problema" -> problema NO es negable
-    #    pero resolvió sí lo es
     if token.head and token.head.pos_ == "VERB":
         for child in token.head.children:
             if child.lemma_.lower() in NEGATORS and child.dep_ == "advmod":
@@ -114,14 +262,22 @@ def has_negation(token):
 def get_intensity_multiplier(token):
     """
     Devuelve un multiplicador si el token tiene intensificadores asociados.
-    Busca modificadores adverbiales o adjetivales (advmod, amod).
     """
     mult = 1.0
+    
+    if not SPACY_AVAILABLE:
+        # Versión simple
+        text = token.text.lower()
+        if text in INTENSIFIERS:
+            return INTENSIFIERS[text]
+        return mult
+    
+    # Versión con spaCy (original)
     for child in token.children:
         if child.dep_ in ("advmod", "amod"):
             if child.text.lower() in INTENSIFIERS:
                 mult *= INTENSIFIERS[child.text.lower()]
-    # También revisar ancestros (ej. “muy bien hecho” → “hecho” tiene intensificador “muy” arriba)
+    
     ancestor = token.head
     for _ in range(2):
         if not ancestor or ancestor == token:
@@ -129,18 +285,25 @@ def get_intensity_multiplier(token):
         if ancestor.text.lower() in INTENSIFIERS:
             mult *= INTENSIFIERS[ancestor.text.lower()]
         ancestor = ancestor.head
+    
     return mult
-
 
 def detect_adversative_clauses(sent):
     """
     Detecta si hay conjunciones adversativas (ej. 'pero', 'aunque') en la oración.
-    Devuelve True/False y la conjunción detectada.
     """
+    if not SPACY_AVAILABLE:
+        # Versión simple por texto
+        text = sent.text.lower()
+        for conj in ADVERSATIVE_CONJUNCTIONS:
+            if conj in text:
+                return True, conj
+        return False, None
+    
+    # Versión original con spaCy
     for token in sent:
         if token.text.lower() in ADVERSATIVE_CONJUNCTIONS:
             return True, token.text.lower()
-        # Buscar conjunciones por dependencias (cc o mark)
         if token.dep_ in ("cc", "mark") and token.text.lower() in ADVERSATIVE_CONJUNCTIONS:
             return True, token.text.lower()
     return False, None
@@ -419,8 +582,6 @@ def rule_verb_with_negative_object(token):
     return 0
 
 
-
-
 def apply_grammatical_rules(token, base_score, debug_info):
     """
     Aplica reglas gramaticales (dependientes del árbol de dependencias)
@@ -475,57 +636,135 @@ def apply_grammatical_rules(token, base_score, debug_info):
 #  FUNCIÓN PRINCIPAL DE ANÁLISIS
 # ================================================================
 
-def _analyze_sentiment(text, debug=True):
+def analyze_sentiment_simple(text, debug=True):
     """
-    Analiza el sentimiento de un texto aplicando reglas basadas en dependencias.
-    Devuelve un diccionario con el puntaje y, si debug=True, los detalles.
+    Análisis de sentimientos simplificado para cuando spaCy no está disponible.
+    Basado solo en el léxico y palabras clave.
     """
-    doc = nlp(text)
+    if not text or not isinstance(text, str):
+        return {"text": text, "score": 0.0, "sentiment": "neutro", "details": []}
+    
+    # Tokenización simple
+    import re
+    words = re.findall(r'\b\w+\b', text.lower())
+    
     total_score = 0.0
     details = []
-
-    for sent in doc.sents:
-        sent_score = 0.0
-        sent_debug = []
-
-        # Detectar conjunciones adversativas en la oración
-        has_adv, conj = detect_adversative_clauses(sent)
-
-        for token in sent:
-            lemma = token.lemma_.lower()
-            if lemma in LEXICON:
-                base = LEXICON[lemma]
-                adjusted = apply_grammatical_rules(token, base, sent_debug)
-                sent_score += adjusted
-
-        # Si hay conjunción adversativa, aplicar peso
-        if has_adv:
-            mult = ADVERSATIVE_CONJUNCTIONS.get(conj, 1.0)
-            sent_score *= mult
-            sent_debug.append(f"adversative({conj},x{mult})")
-
-        total_score += sent_score
-        details.append({
-            "sentence": sent.text.strip(),
-            "score": round(sent_score, 3),
-            "rules": sent_debug
-        })
-
-    polarity = (
-        "positivo" if total_score > 0
-        else "negativo" if total_score < 0
-        else "neutro"
-    )
-
+    
+    for word in words:
+        lemma = word
+        
+        # Buscar en léxico
+        if lemma in LEXICON:
+            base_score = LEXICON[lemma]
+            
+            # Aplicar negación simple (si la palabra anterior es negador)
+            idx = words.index(word)
+            if idx > 0 and words[idx-1] in NEGATORS:
+                base_score *= -1
+            
+            # Aplicar intensificadores simples
+            if idx > 0 and words[idx-1] in INTENSIFIERS:
+                base_score *= INTENSIFIERS[words[idx-1]]
+            
+            total_score += base_score
+    
+    # Determinar polaridad
+    if total_score > 0.1:
+        sentiment = "positivo"
+    elif total_score < -0.1:
+        sentiment = "negativo"
+    else:
+        sentiment = "neutro"
+    
     if debug:
         return {
             "text": text,
             "score": round(total_score, 3),
-            "sentiment": polarity,
-            "details": details
+            "sentiment": sentiment,
+            "details": [{
+                "sentence": text,
+                "score": round(total_score, 3),
+                "rules": ["simple_analysis"]
+            }]
         }
-    else:
-        return polarity
+    return sentiment
+
+def _analyze_sentiment(text, debug=True):
+    """
+    Función principal de análisis con fallback automático.
+    Usa spaCy si está disponible, si no usa el método simple.
+    """
+    if not SPACY_AVAILABLE:
+        print("⚠️  Usando análisis de sentimientos simplificado (spaCy no disponible)")
+        return analyze_sentiment_simple(text, debug)
+    
+    try:
+        # Usar la versión original con spaCy
+        doc = nlp(text)
+        total_score = 0.0
+        details = []
+
+        for sent in doc.sents:
+            sent_score = 0.0
+            sent_debug = []
+
+            # Detectar conjunciones adversativas en la oración
+            has_adv, conj = detect_adversative_clauses(sent)
+
+            for token in sent:
+                lemma = token.lemma_.lower()
+                if lemma in LEXICON:
+                    base = LEXICON[lemma]
+                    # Aplicar reglas gramaticales
+                    # (simplificado sin el árbol completo)
+                    
+                    # Negación simple
+                    if has_negation(token):
+                        base *= -1
+                        sent_debug.append("negation")
+                    
+                    # Intensificadores
+                    mult = get_intensity_multiplier(token)
+                    if mult != 1.0:
+                        base *= mult
+                        sent_debug.append(f"intensifier(x{mult})")
+                    
+                    sent_score += base
+
+            # Si hay conjunción adversativa, aplicar peso
+            if has_adv:
+                mult = ADVERSATIVE_CONJUNCTIONS.get(conj, 1.0)
+                sent_score *= mult
+                sent_debug.append(f"adversative({conj},x{mult})")
+
+            total_score += sent_score
+            details.append({
+                "sentence": sent.text.strip(),
+                "score": round(sent_score, 3),
+                "rules": sent_debug
+            })
+
+        polarity = (
+            "positivo" if total_score > 0
+            else "negativo" if total_score < 0
+            else "neutro"
+        )
+
+        if debug:
+            return {
+                "text": text,
+                "score": round(total_score, 3),
+                "sentiment": polarity,
+                "details": details
+            }
+        else:
+            return polarity
+            
+    except Exception as e:
+        print(f"⚠️  Error en análisis con spaCy: {e}")
+        print("ℹ️  Cambiando a análisis simplificado")
+        return analyze_sentiment_simple(text, debug)
 
 # ================================================================
 #  NUEVO ANALIZADOR BASADO EN EL ÁRBOL (POSTORDER)
@@ -635,36 +874,24 @@ def analyze_sentiment(text, debug=True):
 
 if __name__ == "__main__":
     examples = [
-        # "Me gusta mucho esto, es excelente 👍",
-        # "No me gustó, estuvo terrible",
-        # "Está bien, pero podría ser mejor",
-        # "No me gusta el servicio, pero la comida está buena.",
-        # "No me gusta el servicio, pero la comida está muy buena.",
-        # "No me gusta el servicio",
-        # "El servicio esta malo",
-        # "El servicio no esta malo",
-        # "El servicio no esta muy bueno",
-        # "La obra de teatro careció de emoción y profesionalismo.",
-        # "La entrega tardó mucho más de lo esperado.",
-        # "La visita guiada al sitio arqueológico fue educativa y emocionante, el guía explicaba cada detalle con gran entusiasmo y conocimiento.",
-        # "La conferencia educativa a la que asistí fue inspiradora, los ponentes eran expertos en su área y brindaron conocimientos muy valiosos.",
-        # "El museo tenía pocas exposiciones abiertas y la mayoría estaban en malas condiciones, fue una experiencia frustrante para los visitantes.",
-        # "No disfruté el festival, la programación fue monótona y poco atractiva.",
-        # "No disfruté el festival pero la comida estuvo excelente",
-        # "La calidad de las presentaciones fue baja.",
-        # "No tener problemas",
-        # "El servicio al cliente fue pésimo y no resolvió mi problema."
-        # "No puedo decir nada bueno de ti",
-        # "Nada bueno",
-        # "Nada insteresante",
-        # "No tienes ningun producto de calidad",
-        # "Nada insteresante",
-        # "La obra de teatro superó todas mis expectativas."
-        #"Los profesores están muy capacitados y comprometidos."
-        #"El producto que compré se deshizo al poco tiempo de uso, una decepción que el servicio postventa no mejoró; en lugar de una solución, recibí excusas.",
-        #"La mayor virtud de esta película es su existencia.El hecho de que podamos jugar con los tópicos más extremos de las identidades patrias (la andaluza y la vasca) sin que nadie se escandalice ni ponga el grito en el cielo indica mucho de nuestra madurez como nación (pese a quien pese). Bueno corrijo: el hecho de que podamos jugar y hacer mofa y befa de los tópicos sobre los vascos y el nacionalismo vasco sin que nadie se escandalice ni ponga el grito en el cielo indica mucho del grado de normalización de ciertas cuestiones que antes eran llagas abiertas siempre dispuestas a sangrar. Y hago esta corrección porque los andaluces han sido motivo de guasa siempre y nunca ha pasado nada.Por esto mismo el planteamiento de Ocho Apellidos Vascos"" es valiente es oportuno y es oportunista. Seguramente sea esa una de las principales razones por la que los españoles hemos acudido en masa en una masa casi sin precedentes a los cines a ver este producto patrocinado por Tele 5. Esa junto con la acertada fecha de estreno (entre los oscar y los blockbusters del verano) y la brutal y ejemplar campaña de marketing la cual aplaudo y celebro.Eso es todo lo que puedo celebrar de este despropósito muy a mi pesar.Siempre digo y repito eso de ""el oscuro placer de ver películas malas y disfrutarlas"" y siempre insisto en que ""no hay que olvidar que el principal propósito del cine es entretener"". Lo digo y lo mantengo. El problema es que ""Ocho Apelidos Vascos"" no es lo suficientemente mala ni lo suficientemente friki ni lo suficientemente disparatada para ser una ""Peli Mala""(como Sharknado o Xanadu o Condemor). Y desgraciadamente no es lo suficientemente entretenida para perdonarle su mediocridad (siempre desde mi punto de vista).Esa es precisamente la palabra que mejor la define: ""Mediocridad"". Es dolorosamente mediocre. Es simple que no sencilla. Es impersonal y lo peor: está hecha sin ganas.Funciona porque el planteamiento interesa y no por novedoso (sacar un elemento de su entorno e introducirlo en otro totalmente ajeno y hostil es uno de los argumentos básicos en la comedia desde que el cine es cine) sino por lo que explicaba al principio.Pero todos los demás elementos apenas encajan o no lo hacen en absoluto. Toda la película es una caída en picado desde un comienzo prometedor a un final vergonzoso pasando por todas las situaciones ""cómicas"" de manual y todos los tópicos más manidos de la comedia de enredo. Que sí César que ya te oigo replicarme: ""que todas las historias están ya contadas"". Tienes  toda la razón pero se pueden seguir contando con un poco de ganas o al menos de formas si no originales sí convincentes. Y volvemos al principal problema de gran parte del cine patrio (y mucho foráneo): el guión. La mayoría de los directores confunden el argumento con el guión. El argumento es el planteamiento el guión el desarrollo. Una grandísima parte de las películas españolas que llevo años sufriendo se desinflan con suerte a la mitad de su recorrido. Pocos son los cineastas que se molestan en desarrollar sus historias menos aún en rematarlas y en hacer que las cosas encajen. Parece que en las escuelas de cine que surgen como champiñones en este país nuestro se olvidan de poner ""El Guión"" como asignatura.La que nos ocupa hoy es un ejemplo más: hay un planteamiento interesante aunque torpemente presentado y ante la incapacidad (o la falta de ganas) de su director de desarrollarlo de una manera convincente (o alocadamente convincente) se refugia en un enredo de principiante del cual no sabe cómo salir aunque todos intuímos (y tememos) desde el principio cómo lo va a hacer: a la fuerza y sin lubricante.Lo que salva este producto del descalabro total es el monologuista Dani Rovira con sus inspirados monólogos y su desparpajo y Karra Elejalde dando vida la único personaje creíble de toda la historia. Carmen Machi muy bien haciendo de Carmen Machi y de Clara Lago...llamarla actriz sería insultar al resto de la profesión (Elsa Pataki incluída).Aún con todo: - sí hay unas cuantas situaciones capaces de arrancar risas e incluso carcajadas y - sí resulta entretenida (a ratos). Pero me duele pensar que ésto es lo que el público está esperando del cine español para llenar las salas. Me duele pensar que el cine también como casi todos los ámbitos de poder está en manos de los mediocres. Y me duele pensar que sean los sub-productos como este los que vayan a salvar al cine español de las aguas en que él sólo se ha sumergido.Robándole una cita a mi amigo Regino Mateo y parafraseándola: ""no es lo mismo hacer películas que hacer cine"
-        "Película hecha para reírse y mucho."
+        "Me gusta mucho esto, es excelente 👍",
+        "No me gustó, estuvo terrible",
+        "Está bien, pero podría ser mejor",
+        "La calidad de las presentaciones fue baja.",
+        "No tener problemas",
+        "El servicio al cliente fue pésimo y no resolvió mi problema."
     ]  
+    
+    print("=" * 80)
+    print("PRUEBAS DE ANÁLISIS DE SENTIMIENTOS")
+    print("=" * 80)
+    print(f"spaCy disponible: {SPACY_AVAILABLE}")
+    print(f"SentiWordNet disponible: {SENTIWORDNET_AVAILABLE}")
+    print(f"googletrans disponible: {GOOGLETRANS_AVAILABLE}")
+    print("=" * 80)
+    
     for ex in examples:
-        print(ex, "\n --> ",analyze_sentiment(ex, True), "\n\n")
-
+        print(f"\nTexto: {ex}")
+        result = analyze_sentiment(ex, True)
+        print(f"Resultado: {result['sentiment']} (score: {result['score']})")
+        print("-" * 40)

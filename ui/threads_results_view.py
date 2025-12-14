@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
     QScrollArea, QComboBox, QGraphicsView, QGraphicsScene,
     QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem, QTextEdit,
     QSizePolicy, QFrame, QGraphicsPolygonItem, QLineEdit, QGridLayout,
-    QProgressBar, QGroupBox
+    QGroupBox
 )
 
 from PyQt6.QtGui import (
@@ -20,6 +20,7 @@ from PyQt6.QtGui import (
 from PyQt6.QtCore import (
     Qt, QTimer, QRectF, QPointF
 )
+
 
 class ThreadsAnalysisResults(QMainWindow):
     def __init__(self, results, parent=None):
@@ -86,11 +87,13 @@ class ThreadsAnalysisResults(QMainWindow):
         self.resumen_tab = self.create_resumen_tab()
         self.hilos_tab = self.create_hilos_tab()
         self.grafo_tab = self.create_grafo_tab()
+        self.feelings_tab = self.create_sentiment_analysis_tab(self.results["resumen_sentimientos"])
         self.analisis_tab = self.create_analisis_tab()
         
         self.tab_widget.addTab(self.resumen_tab, "📊 Resumen")
         self.tab_widget.addTab(self.hilos_tab, "💬 Hilos")
         self.tab_widget.addTab(self.grafo_tab, "🕸️ Grafos")
+        self.tab_widget.addTab(self.feelings_tab, "😊 Sentimientos")
         self.tab_widget.addTab(self.analisis_tab, "📈 Análisis")
         
         layout.addWidget(self.tab_widget)
@@ -251,7 +254,8 @@ class ThreadsAnalysisResults(QMainWindow):
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(15, 12, 15, 12)
         
-        chat_name = datos.get('graph_info', {}).get('metadata', {}).get('chat_name', 'Chat Desconocido')
+        #TODO
+        chat_name = datos.get('graph_info', {}).get('metadata', {}).get('metadata', {}).get('chat_name', 'Chat Desconocido')
         if not chat_name or chat_name == 'Chat':
             chat_name = archivo.replace('.json', '').replace('_', ' ')
         
@@ -1037,6 +1041,189 @@ class ThreadsAnalysisResults(QMainWindow):
         selected_messages = selected_messages[:90]
         
         return set(selected_users + selected_messages)
+
+    def create_sentiment_analysis_tab(self, summary):
+        """Crea el tab de análisis de sentimientos"""
+        # Widget principal del tab
+        tab_widget = QWidget()
+        layout = QVBoxLayout(tab_widget)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+        
+        # Título
+        title = QLabel("<h2>Análisis de Sentimientos</h2>")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("color: #2C6E91; padding: 10px;")
+        layout.addWidget(title)
+        
+        # Scroll area para contenido largo
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        
+        # Widget de contenido
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setSpacing(15)
+        
+        # Resumen general
+        general_group = QGroupBox("📊 Resumen General")
+        general_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 14px;
+                border: 2px solid #2C6E91;
+                border-radius: 8px;
+                margin-top: 10px;
+                padding-top: 15px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 10px 0 10px;
+                color: #2C6E91;
+            }
+        """)
+        
+        general_layout = QVBoxLayout()
+        
+        # Estadísticas principales
+        stats_grid = QGridLayout()
+        
+        total_messages = summary.get('total_messages', 0)
+        avg_score = summary.get('average_score', 0.0)
+        most_common = summary.get('most_common_sentiment', 'N/A')
+        
+        stats_grid.addWidget(QLabel("<b>Total de Mensajes Analizados:</b>"), 0, 0)
+        stats_grid.addWidget(QLabel(f"<span style='color: #2C6E91; font-size: 14px;'>{total_messages}</span>"), 0, 1)
+        
+        stats_grid.addWidget(QLabel("<b>Puntuación Promedio:</b>"), 1, 0)
+        stats_grid.addWidget(QLabel(f"<span style='color: #2C6E91; font-size: 14px;'>{avg_score:.2f}</span>"), 1, 1)
+        
+        stats_grid.addWidget(QLabel("<b>Sentimiento Más Común:</b>"), 2, 0)
+        
+        # Color según sentimiento
+        sentiment_color = {
+            'positivo': '#4CAF50',
+            'negativo': '#F44336', 
+            'neutral': '#FF9800'
+        }.get(most_common.lower(), '#2C6E91')
+        
+        stats_grid.addWidget(QLabel(f"<span style='color: {sentiment_color}; font-size: 14px; font-weight: bold;'>{most_common.capitalize()}</span>"), 2, 1)
+        
+        general_layout.addLayout(stats_grid)
+        
+        # Distribución y porcentajes
+        distribution = summary.get('distribution', {})
+        percentages = summary.get('percentages', {})
+        
+        if distribution:
+            dist_text = "<h5>📈 Distribución de Sentimientos:</h5><ul>"
+            for label, count in distribution.items():
+                dist_text += f"<li><b>{label.capitalize()}:</b> {count} mensajes</li>"
+            dist_text += "</ul>"
+            
+            perc_text = "<h5>📊 Porcentajes:</h5><ul>"
+            for label, perc in percentages.items():
+                # Barra de progreso visual
+                bar_width = int(perc * 2)
+                bar = "█" * (bar_width // 4) + "░" * (50 - bar_width // 4)
+                perc_text += f"<li><b>{label.capitalize()}:</b> {perc}% {bar}</li>"
+            perc_text += "</ul>"
+            
+            general_layout.addWidget(QLabel(dist_text))
+            general_layout.addWidget(QLabel(perc_text))
+        
+        general_group.setLayout(general_layout)
+        content_layout.addWidget(general_group)
+        
+        # Análisis por usuario
+        user_sentiments = summary.get('user_sentiments', {})
+        if user_sentiments:
+            user_group = QGroupBox("👥 Análisis por Participante")
+            user_group.setStyleSheet("""
+                QGroupBox {
+                    font-weight: bold;
+                    font-size: 14px;
+                    border: 2px solid #2C6E91;
+                    border-radius: 8px;
+                    margin-top: 10px;
+                    padding-top: 15px;
+                }
+                QGroupBox::title {
+                    subcontrol-origin: margin;
+                    left: 10px;
+                    padding: 0 10px 0 10px;
+                    color: #2C6E91;
+                }
+            """)
+            
+            user_layout = QVBoxLayout()
+            
+            for idx, (user, data) in enumerate(user_sentiments.items()):
+                user_frame = QFrame()
+                user_frame.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
+                user_frame.setStyleSheet(f"""
+                    QFrame {{
+                        background-color: {'#f8f9fa' if idx % 2 == 0 else '#ffffff'};
+                        border-radius: 6px;
+                        padding: 10px;
+                        border: 1px solid #dee2e6;
+                    }}
+                """)
+                
+                user_inner_layout = QVBoxLayout(user_frame)
+                
+                # Nombre de usuario
+                user_name = QLabel(f"<h4>👤 {user}</h4>")
+                user_name.setStyleSheet("color: #2C6E91;")
+                user_inner_layout.addWidget(user_name)
+                
+                # Estadísticas del usuario
+                user_stats = QGridLayout()
+                
+                user_stats.addWidget(QLabel("<b>Mensajes:</b>"), 0, 0)
+                user_stats.addWidget(QLabel(f"<span style='color: #495057;'>{data['total_messages']}</span>"), 0, 1)
+                
+                user_stats.addWidget(QLabel("<b>Puntuación Promedio:</b>"), 1, 0)
+                user_stats.addWidget(QLabel(f"<span style='color: #495057;'>{data['average_score']:.2f}</span>"), 1, 1)
+                
+                user_most_common = data['most_common_sentiment']
+                user_stats.addWidget(QLabel("<b>Sentimiento Más Común:</b>"), 2, 0)
+                
+                user_sentiment_color = {
+                    'positivo': '#4CAF50',
+                    'negativo': '#F44336',
+                    'neutral': '#FF9800'
+                }.get(user_most_common.lower(), '#495057')
+                
+                user_stats.addWidget(QLabel(f"<span style='color: {user_sentiment_color}; font-weight: bold;'>{user_most_common.capitalize()}</span>"), 2, 1)
+                
+                user_inner_layout.addLayout(user_stats)
+                
+                # Distribución del usuario
+                user_dist_text = "<b>Distribución:</b><br>"
+                for label, count in data['distribution'].items():
+                    user_dist_text += f"  • {label.capitalize()}: {count}<br>"
+                
+                user_perc_text = "<b>Porcentajes:</b><br>"
+                for label, perc in data['percentages'].items():
+                    user_perc_text += f"  • {label.capitalize()}: {perc}%<br>"
+                
+                user_inner_layout.addWidget(QLabel(user_dist_text))
+                user_inner_layout.addWidget(QLabel(user_perc_text))
+                
+                user_layout.addWidget(user_frame)
+            
+            user_group.setLayout(user_layout)
+            content_layout.addWidget(user_group)
+        
+        # Añadir widget de contenido al scroll
+        scroll.setWidget(content_widget)
+        layout.addWidget(scroll)
+        
+        return tab_widget
 
     def extract_conversation_thread(self, root_msg, message_nodes, edges, selected_nodes):
         """Extrae un hilo de conversación a partir de un mensaje raíz"""
@@ -2380,7 +2567,7 @@ class ThreadsAnalysisResults(QMainWindow):
             summary_layout.addWidget(content_widget)
             content_layout.addWidget(summary_card)
         
-        # PATRONES TEMPORALES - MEJORADO (ARREGLADO distribución por hora)
+        # PATRONES TEMPORALES 
         temporal_patterns = trends_data.get('temporal_patterns', {})
         if temporal_patterns:
             temporal_card = QFrame()
@@ -2413,6 +2600,7 @@ class ThreadsAnalysisResults(QMainWindow):
             content_inner.setContentsMargins(15, 15, 15, 15)
             
             # Horas pico
+            # Horas pico
             peak_hours = temporal_patterns.get('peak_hours', [])
             if peak_hours:
                 peaks_label = QLabel("⏰ Horas de Mayor Actividad:")
@@ -2423,11 +2611,14 @@ class ThreadsAnalysisResults(QMainWindow):
                     hour = peak.get('hour', 0)
                     activity = peak.get('activity', 0)
                     
+                    display_hour = hour % 12 or 12
+                    period = "AM" if hour < 12 else "PM"
+                    
                     peak_widget = QWidget()
                     peak_layout = QHBoxLayout(peak_widget)
                     
-                    time_label = QLabel(f"{hour:02d}:00")
-                    time_label.setStyleSheet("font-weight: bold; color: #6f42c1; min-width: 50px;")
+                    time_label = QLabel(f"{display_hour}:00 {period}")
+                    time_label.setStyleSheet("font-weight: bold; color: #6f42c1; min-width: 70px;")
                     
                     # Barra de progreso visual
                     progress_container = QWidget()
@@ -2453,13 +2644,18 @@ class ThreadsAnalysisResults(QMainWindow):
                     peak_layout.addWidget(progress_container)
                     content_inner.addWidget(peak_widget)
             
-            # Actividad por hora del día - ARREGLADO
+            # Actividad por hora del día  
             hourly_activity = temporal_patterns.get('hourly_activity', {})
-            if hourly_activity:
-                hourly_label = QLabel("📊 Distribución por Hora del Día:")
-                hourly_label.setStyleSheet("font-weight: bold; color: #2C6E91; margin-top: 10px;")
-                content_inner.addWidget(hourly_label)
-                
+
+            hourly_label = QLabel("📊 Distribución por Hora del Día:")
+            hourly_label.setStyleSheet("font-weight: bold; color: #2C6E91; margin-top: 10px;")
+            content_inner.addWidget(hourly_label)
+
+            if not hourly_activity:
+                no_data_label = QLabel("No hay datos de actividad por hora.")
+                no_data_label.setStyleSheet("color: #6c757d; font-style: italic; margin-left: 10px;")
+                content_inner.addWidget(no_data_label)
+            else:
                 # Crear un área de scroll para todas las horas
                 hourly_scroll = QScrollArea()
                 hourly_scroll.setFixedHeight(300)
@@ -2470,18 +2666,21 @@ class ThreadsAnalysisResults(QMainWindow):
                 hourly_content_layout = QVBoxLayout(hourly_content)
                 hourly_content_layout.setSpacing(5)
                 
-                # Ordenar horas de 0 a 23
-                sorted_hours = sorted([h for h in hourly_activity.keys() if isinstance(h, int)])
+                # Convertir claves a int y ordenar de 0 a 23
+                sorted_hours = sorted(int(h) for h in hourly_activity.keys())
                 max_hourly_activity = max(hourly_activity.values()) if hourly_activity else 1
                 
                 for hour in sorted_hours:
-                    activity = hourly_activity.get(hour, 0)
-                    if activity > 0:  # Solo mostrar horas con actividad
+                    activity = hourly_activity.get(str(hour), 0)
+                    if activity > 0:
                         hour_widget = QWidget()
                         hour_layout = QHBoxLayout(hour_widget)
                         
-                        hour_label = QLabel(f"{hour:02d}:00")
-                        hour_label.setStyleSheet("font-weight: bold; min-width: 60px; color: #495057;")
+                        # Formato AM/PM
+                        display_hour = hour % 12 or 12
+                        period = "AM" if hour < 12 else "PM"
+                        hour_label = QLabel(f"{display_hour}:00 {period}")
+                        hour_label.setStyleSheet("font-weight: bold; min-width: 80px; color: #495057;")
                         
                         # Barra de progreso
                         progress_container = QWidget()
@@ -2495,7 +2694,7 @@ class ThreadsAnalysisResults(QMainWindow):
                         progress_bar.setStyleSheet("background: #6f42c1; border-radius: 6px;")
                         
                         count_label = QLabel(f"{activity} mensajes")
-                        count_label.setStyleSheet("color: #6c757d; font-size: 11px; min-width: 70px;")
+                        count_label.setStyleSheet("color: #6c757d; font-size: 11px; min-width: 80px;")
                         
                         progress_layout.addWidget(progress_bar)
                         progress_layout.addWidget(count_label)
@@ -2509,7 +2708,7 @@ class ThreadsAnalysisResults(QMainWindow):
                 
                 hourly_scroll.setWidget(hourly_content)
                 content_inner.addWidget(hourly_scroll)
-            
+
             # Actividad por día de la semana
             daily_activity = temporal_patterns.get('daily_activity', {})
             if daily_activity:
@@ -2608,10 +2807,14 @@ class ThreadsAnalysisResults(QMainWindow):
                     hour = activity.get('hour', 0)
                     reason = activity.get('reason', '')
                     
-                    activity_widget = QLabel(f"• Hora {hour:02d}:00 - {reason}")
+                    display_hour = hour % 12 or 12
+                    period = "AM" if hour < 12 else "PM"
+                    
+                    activity_widget = QLabel(f"• Hora {display_hour}:00 {period} - {reason}")
                     activity_widget.setStyleSheet("color: #495057;")
                     activity_widget.setWordWrap(True)
                     content_inner.addWidget(activity_widget)
+
             
             # Patrones sospechosos
             suspicious_patterns = anomalies.get('suspicious_patterns', [])

@@ -509,6 +509,8 @@ _cache
 .vscode
 .venv
 
+alarm_logs
+alarm_configurations
 utils/sentiments/results
 utils/sentiments/datasets
 utils/sentiments/models
