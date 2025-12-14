@@ -220,52 +220,6 @@ def _extract_date_patterns(text: str) -> dict:
     
     return date_data
 
-# def analyze_text_patterns(text: str) -> str:
-#     """
-#     Analiza el texto y lo enriquece con informacion sobre los patrones encontrados.
-#     Esta funcion es util para visualizar rapidamente que se ha detectado.
-#     """
-#     patterns = extract_regex_patterns(text)
-    
-#     elementos_detectados = []
-    
-#     # Resumen de patrones monetarios
-#     total_monetary = (
-#         len(patterns.get('monedas_explicitas', [])) +
-#         len(patterns.get('precios_implicitos', [])) +
-#         len(patterns.get('currency_ranges', []))
-#     )
-#     if total_monetary > 0:
-#         elementos_detectados.append(f"{total_monetary} referencias monetarias")
-    
-#     # Resumen de patrones de fecha
-#     total_dates = sum(len(patterns.get(key, [])) for key in patterns if key.startswith('dates_'))
-#     if total_dates > 0:
-#         elementos_detectados.append(f"{total_dates} referencias de fecha")
-    
-#     # Otros patrones importantes
-#     if patterns.get('emails'):
-#         elementos_detectados.append(f"{len(patterns['emails'])} emails")
-    
-#     if patterns.get('phone_numbers'):
-#         valid_phones = [p for p in patterns['phone_numbers'] if p and re.search(r'\d', p)]
-#         if valid_phones:
-#             elementos_detectados.append(f"{len(valid_phones)} telefonos")
-    
-#     if patterns.get('urls_raw'):
-#         elementos_detectados.append(f"{len(patterns['urls_raw'])} enlaces")
-    
-#     if patterns.get('hashtags'):
-#         elementos_detectados.append(f"{len(patterns['hashtags'])} hashtags")
-    
-#     if patterns.get('mentions'):
-#         elementos_detectados.append(f"{len(patterns['mentions'])} menciones")
-    
-#     if elementos_detectados:
-#         return f"{text} [Patrones: {', '.join(elementos_detectados)}]"
-    
-#     return text
-
 def analyze_text_patterns(text: str) -> str:
     """
     Analiza el texto y lo enriquece con información sobre los patrones encontrados.
