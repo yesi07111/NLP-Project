@@ -1,7 +1,7 @@
 # 🤖 Proyecto NLP — Cliente Telegram para exportar chats
 
 ## 🧠 Resumen
-Este proyecto es una herramienta de **Procesamiento del Lenguaje Natural (NLP)** que funciona como cliente de Telegram. Permite iniciar sesión con una cuenta, seleccionar chats/grupos y descargar los mensajes en un formato **estructurado (JSON)** para análisis posterior. Es posible filtrar por rango de fechas y elegir si descargar contenidos multimedia (imágenes, audios, documentos). Incluye capacidades de **análisis de sentimientos**, **sustitución inteligente de enlaces**, y **reconstrucción de hilos de conversación** usando machine learning.
+Este proyecto es una herramienta de **Procesamiento del Lenguaje Natural (NLP)** que funciona como cliente de Telegram. Permite iniciar sesión con una cuenta, seleccionar chats/grupos y descargar los mensajes en un formato **estructurado (JSON)** para análisis posterior. Es posible filtrar por rango de fechas y elegir si descargar contenidos multimedia (imágenes, audios, documentos). Incluye capacidades de **análisis de sentimientos**, **sustitución inteligente de enlaces**, y **reconstrucción de hilos de conversación** usando machine learning así como un **sistema de alarmas** que te avisa sobre información importante que no te quieras perder de algún chat.
 
 ---
 
@@ -164,6 +164,183 @@ sentimiento = analyze_sentiment("¡Me encanta este proyecto!")
 
 ---
 
+## ⏰ Sistema de Alarmas Inteligentes
+
+El proyecto incluye un **sistema avanzado de alarmas sobre chats de Telegram**, diseñado para **monitorizar información relevante de forma continua** y notificar automáticamente al usuario cuando se detectan coincidencias importantes según reglas configurables.
+
+Este sistema combina:
+
+* **Expresiones regulares (regex)** configurables
+* **IA generativa (OpenRouter)** para creación de patrones y resúmenes
+* **Procesamiento incremental de mensajes**
+* **Ejecución programada y encolada de alarmas**
+
+---
+
+## 🖼️ Configuración de Alarmas (UI)
+
+### `ui/alarm_configuration_dialog.py`
+
+Este módulo define la **interfaz gráfica de configuración de alarmas**, permitiendo al usuario:
+
+* Seleccionar **chat o canal** a monitorizar
+* Definir:
+
+  * Hora de ejecución
+  * Intervalo de revisión
+  * Rango inicial de fechas
+* Configurar **patrones de detección**, que pueden ser:
+
+  * Regex predeterminados
+  * Regex personalizados
+  * Generados automáticamente por IA
+* Uso de **IA para resumen**
+
+La configuración resultante se traduce a un objeto `AlarmConfig` que es gestionado por el `AlarmManager`.
+
+---
+
+## ⚙️ Gestor de Alarmas
+
+### `telegram/alarm_manager.py`
+
+El **Alarm Manager** es el núcleo operativo del sistema. Se encarga de:
+
+* Crear alarmas
+* Borrar alarmas
+* Persistir alarmas configuradas
+* Encolar alarmas para ejecución
+* Ejecutar alarmas según su planificación
+* Gestionar el estado de cada alarma
+* Enviar el mensaje final de alarma al usuario
+
+---
+
+## 🔄 Flujo de Ejecución de una Alarma
+
+1. **Primera ejecución**
+
+   * Se obtienen mensajes del chat usando el **rango de fechas inicial** definido por el usuario.
+   * Se analizan todos los mensajes del rango.
+
+2. **Ejecuciones posteriores**
+
+   * El sistema guarda el **último timestamp procesado**.
+   * En cada ejecución, solo se analizan los mensajes desde ese punto **hasta el momento actual (`now`)**.
+   * Esto garantiza eficiencia y evita reprocesar mensajes antiguos.
+
+3. **Obtención de mensajes**
+
+   * Se realiza mediante `AsyncWorker`, que:
+
+     * Accede a Telegram usando Telethon
+     * Descarga mensajes de forma asíncrona
+     * Devuelve los datos estructurados al `AlarmManager`
+
+4. **Análisis**
+
+   * Los mensajes obtenidos se analizan aplicando:
+
+     * Regex configurados por el usuario
+     * Regex predeterminados (si están habilitados)
+     * Regex generados por IA (si están habilitados)
+
+5. **Generación del mensaje de alarma**
+
+   * Si la IA está activa y responde correctamente:
+
+     * Se genera un **resumen inteligente** del contenido detectado
+   * Si la IA falla:
+
+     * Se utiliza un **mensaje predeterminado**
+     * Se expone **todo lo encontrado**, sin pérdida de información
+
+6. **Envío**
+
+   * El mensaje de alarma se envía automáticamente a:
+
+     * **Mensajes Guardados** del usuario
+   * El envío también se realiza usando `AsyncWorker`
+
+---
+
+## 🧠 Uso de IA (OpenRouter)
+
+### `utils/api_keys.py`
+
+Este módulo centraliza la gestión de **API Keys de OpenRouter**, cargadas desde el archivo `.env`.
+
+Las IA se utilizan para:
+
+* Generar **expresiones regulares** a partir de descripciones en lenguaje natural
+* Resumir la información encontrada en los mensajes
+* Mejorar la legibilidad del mensaje final de alarma
+
+Las claves soportadas incluyen modelos gratuitos y de pago disponibles en OpenRouter.
+
+---
+
+## 🧬 Configuración de Regex e IA
+
+### `regex/regex_config.py`
+
+Este módulo define:
+
+* Prompts usados para:
+
+  * Generación automática de regex mediante IA
+  * Resumen del contenido detectado
+* Conjunto de **regex predeterminados** que el usuario puede activar opcionalmente
+* Parámetros de control sobre:
+
+  * Sensibilidad
+  * Contexto
+  * Tipos de patrones esperados
+
+Esto permite que las alarmas funcionen:
+
+* **Sin IA**
+* **Con IA**
+* **Con una combinación de ambas**
+
+---
+
+## 📬 Mensaje de Alarma
+
+El mensaje de alarma puede ser de dos tipos:
+
+### 🧠 Con IA
+
+* Resumen claro y contextual
+* Agrupación inteligente de resultados
+* Lenguaje natural
+
+### 📄 Sin IA (fallback automático)
+
+* Se expone **todo lo encontrado**
+* Resultados organizados por patrón
+* Conteo de coincidencias
+* Listado detallado (con control de tamaño)
+
+Esto garantiza que **nunca se pierde información**, incluso si la IA no responde o falla.
+
+---
+
+## 🧵 Ejecución Asíncrona y Concurrencia
+
+El sistema utiliza `AsyncWorker` para:
+
+* Obtener mensajes del chat
+* Enviar mensajes de alarma
+* Evitar bloqueos de la UI
+* Ejecutar múltiples alarmas en paralelo
+
+Las alarmas se **encolan** y se procesan de forma segura, incluso si:
+
+* Una alarma tarda más de lo esperado
+* Varias alarmas coinciden en el tiempo
+
+---
 
 ## 🌳 Reconstrucción de Hilos de Conversación
 
@@ -220,36 +397,48 @@ python main.py
 
 ## 🗂️ Organización de archivos (resumen)
 
-```
-proyecto_nlp/
+NLP_Project/
 ├── main.py                          # 🎯 Punto de entrada principal
-├── telegram/                        # 🔐 Cliente y worker de Telegram
-├── ui/                              # 🖼️ Interfaz PyQt
-├── utils/                           # 🛠️ Utilidades avanzadas
-│   ├── evaluate_sentiment.py        # 📊 Evaluación de modelos de sentimiento
-│   ├── sentiment_analysis.py        # 💬 Análisis principal de sentimientos
-│   ├── sentiment_lexicon.py         # 📚 Diccionarios en español
-│   ├── sentiment_rules.py           # ⚙️ Reglas contextuales
-│   ├── text_processing.py           # 🔄 Preprocesamiento especializado
-│   └── parse_url.py                 # 🔗 Utilidades para URLs
-├── link_replacement/                # 🔗 Sistema de sustitución de enlaces
+├── telegram/                        # 🔐 Cliente Telegram y lógica asíncrona
+│   ├── async_worker.py              # ⚙️ Worker asíncrono (descarga mensajes, envío, alarmas)
+│   ├── alarm_manager.py             # ⏰ Gestor de alarmas (crear, borrar, encolar, ejecutar)
+│   ├── message_parser.py            # 🪢 Extrae información estructurada de un objeto Message de Telethon
+│   └── __init__.py
+├── ui/                               # 🖼️ Interfaz gráfica PyQt
+│   ├── alarm_configuration_dialog.py # ⏰ Configuración visual de alarmas
+│   ├── threads_results_view.py       # 📊 Visualización de resultados de hilos
+│   ├── dialogs.py                    # 🪟 Diálogos auxiliares
+│   ├── widgets.py                    # 🧩 Widgets reutilizables
+│   └── __init__.py
+├── utils/                           # 🛠️ Utilidades y soporte
+│   ├── api_keys.py                  # 🔐 Gestión de API Keys (OpenRouter / IA)
+|   ├── cache.py                       # 💾 Caché de chats y resultados intermedios
+│   ├── text_processing.py           # 🔄 Preprocesamiento de texto
+│   ├── sentiments/                  # 💬 Sistema de análisis de sentimientos
+│   └── __init__.py
+├── regex/                           # 🧬 Expresiones regulares e IA
+│   ├── regex_config.py              # 🤖 Prompts de IA y regex predeterminados para alarmas
+│   └── __init__.py
+├── link_replacement/                # 🔗 Sustitución inteligente de enlaces
 │   ├── main.py                      # 🎯 Procesador principal
 │   ├── file_detector.py             # 📁 Detector de tipos de archivo
-│   ├── extractors/                  # 🏗️ +20 extractores de plataformas
-│   └── utils/constants.py           # 🎨 Emojis y configuraciones
+│   ├── extractors/                  # 🏗️ Extractores de plataformas (+20)
+│   └── utils/
+│       └── constants.py             # 🎨 Emojis y configuraciones
 ├── threads_analysis/                # 🧵 Reconstrucción de hilos con ML
 │   ├── knowledge_graph.py           # 🌳 Grafo de conocimiento
 │   ├── models/                      # 🤖 Modelos de machine learning
 │   └── main.py                      # 🚀 Procesamiento de chats
-├── media_<chat_name>/               # 🖼️ Archivos multimedia descargados
-└── threads_analysis_results
-    ├── chats/                        # 📦 JSONs generados por chat
-    ├── train_chats/                  # 📦 JSONs de chats a usar para entrenar los modelos de ML
-    ├── *chat_name*_analysis.json     # 📊 Análisis del chat (métricas de los hilos, user engagement, etc)
-    ├── *chat_name*_graph.json        # 🕸️ Representación en json del grafo de conocimiento del chat
-    └── *chat_name*_threads.json      # 🧵 Hilos de conversación del chat
+├── test/                            # 🧪 Tests de los subproyectos que lo requieren
+├── media_<chat_name>/               # 🖼️ Archivos multimedia descargados por chat
+├── threads_analysis_results/
+│   ├── chats/                       # 📦 JSONs generados por chat
+│   ├── train_chats/                 # 📦 JSONs para entrenamiento de modelos ML
+│   ├── *chat_name*_analysis.json    # 📊 Métricas y análisis del chat
+│   ├── *chat_name*_graph.json       # 🕸️ Grafo de conocimiento del chat
+│   └── *chat_name*_threads.json     # 🧵 Hilos de conversación reconstruidos
+└── .env                             # 🔑 Variables de entorno (Telegram + OpenRouter)
 
-```
 ---
 
 
