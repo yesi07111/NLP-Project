@@ -128,15 +128,16 @@ INSTRUCCIONES:
 3. Organiza la información claramente
 4. Incluye el nombre del chat
 5. No uses markdown, solo texto plano
-6. Máximo 300 caracteres
-7. Sé específico con los datos encontrados
-8. No añadas preámbulos como "Aquí está tu alarma" - empieza directamente con la información
+6. Sé específico con los datos encontrados
+7. No añadas preámbulos como "Aquí está tu alarma" - empieza directamente con la información
+8. No agregues nada después de la fecha estimada, sobre todo NO agreges enlaces.
 
 FORMATO ESPERADO:
 📊 RESUMEN DEL CHAT: [Nombre del chat]
-• [Tipo de dato 1]: [cantidad] encontrados
-• [Tipo de dato 2]: [ejemplos destacados]
-⏰ Próxima revisión: [fecha estimada]
+• [Tipo de dato 1] *emoji relevante*: [cantidad total] encontrados: [concretamente que se encontró sin omitir nada a menos que sean más de 20 diferentes, los iguales se cuentan y agrupan Ejemplo si se tiene: +53 53536798 # veces se pone: +53 53536798 (# veces)]
+• [Tipo de dato 2] *emoji relevante*: [cantidad total] encontrados: [concretamente que se encontró sin omitir nada a menos que sean más de 20 diferentes, los iguales se cuentan y agrupan Ejemplo si se tiene: +53 53536798 # veces se pone: +53 53536798 (# veces)]
+(...continuar por cada tipo de dato...)
+⏰ Próxima revisión según intervalo configurado
 
 Mensaje de alarma:"""
 

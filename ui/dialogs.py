@@ -179,3 +179,5 @@ class ChatPreviewDialog(QDialog):
         except Exception as e:
             QMessageBox.warning(self, "Error", f"No se pudo iniciar descarga: {e}")
 
+
+

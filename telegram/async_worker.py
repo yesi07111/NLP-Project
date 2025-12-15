@@ -1,20 +1,17 @@
 #async_worker.py
-import asyncio
+import re
 import os
 import json
-from datetime import datetime
-import re
-from PyQt6.QtCore import QThread, pyqtSignal
+import asyncio
 from telethon import TelegramClient
-from telethon import events
+from datetime import datetime, timezone
+from PyQt6.QtCore import QThread, pyqtSignal
 from telethon.tl.types import Channel, Chat, User
-from telethon.tl.functions.messages import GetDialogFiltersRequest
 from telethon.errors import SessionPasswordNeededError
+from telethon.tl.functions.messages import GetDialogFiltersRequest
 
 from config.settings import API_ID, API_HASH, SESSION_NAME
 from utils.cache import (
-    save_chat_to_cache,
-    load_chat_from_cache,
     save_session_info,
 )
 from utils.text_processing import sanitize_filename
@@ -29,6 +26,7 @@ class AsyncWorker(QThread):
     download_completed = pyqtSignal(list, list)
     preview_loaded = pyqtSignal(list)
     conversation_threads_completed = pyqtSignal(dict)  # Señal cuando termine el análisis de hilos
+    chat_messages_loaded = pyqtSignal(list)
 
     def __init__(self, client):
         super().__init__()
@@ -78,8 +76,11 @@ class AsyncWorker(QThread):
                 self.loop.run_until_complete(self._preview_chat())
             elif self.task == "send_message":
                 self.loop.run_until_complete(self._send_message())
-            elif self.task == "monitor_chats":
-                self.loop.run_until_complete(self.monitor_chat_changes(self.task_args.get('chat_ids', [])))
+            # elif self.task == "monitor_chats":
+            #     self.loop.run_until_complete(self.monitor_chat_changes(self.task_args.get('chat_ids', [])))
+            elif self.task == "load_chat_messages":
+                self.loop.run_until_complete(self._load_chat_messages())
+
         except Exception as e:
             try:
                 self.error.emit(f"Error en worker: {e}")
@@ -467,98 +468,6 @@ class AsyncWorker(QThread):
         except Exception as e:
             self.error.emit(f"Error cargando chats: {e}")
 
-    # Modificar la función monitor_chat_changes en async_worker.py:
-    async def monitor_chat_changes(self, chat_ids):
-        """Monitorear cambios en chats específicos en tiempo real"""
-        try:
-            if not await self._ensure_connection():
-                print("❌ No se pudo conectar para monitoreo de chats")
-                return
-            
-            client = self.client
-            
-            print(f"🔍 Iniciando monitoreo de {len(chat_ids)} chats...")
-            
-            # Crear un diccionario para mapear IDs a nombres de chat
-            self.chat_names = {}
-            for chat_id in chat_ids:
-                try:
-                    entity = await client.get_entity(chat_id)
-                    if hasattr(entity, 'title'):
-                        self.chat_names[chat_id] = entity.title
-                    elif hasattr(entity, 'first_name'):
-                        name = entity.first_name
-                        if hasattr(entity, 'last_name') and entity.last_name:
-                            name += f" {entity.last_name}"
-                        self.chat_names[chat_id] = name
-                    else:
-                        self.chat_names[chat_id] = f"Chat {chat_id}"
-                    print(f"✅ Chat {chat_id} ({self.chat_names[chat_id]}) preparado para monitoreo")
-                except Exception as e:
-                    print(f"⚠️ No se pudo obtener entidad para chat {chat_id}: {e}")
-                    self.chat_names[chat_id] = f"Chat {chat_id}"
-            
-            # Definir manejador de eventos para nuevos mensajes
-            @client.on(events.NewMessage())
-            async def handler(event):
-                try:
-                    chat_id = event.chat_id
-                    
-                    # Verificar si estamos monitoreando este chat
-                    if chat_id not in chat_ids:
-                        return
-                    
-                    print(f"📨 Nuevo mensaje en chat {self.chat_names.get(chat_id, chat_id)}")
-                    
-                    # Procesar mensaje
-                    message_data = {
-                        'chat_id': chat_id,
-                        'chat_name': self.chat_names.get(chat_id, f"Chat {chat_id}"),
-                        'text': event.message.text or "",
-                        'sender_id': event.message.sender_id,
-                        'date': event.message.date,
-                        'message_id': event.message.id
-                    }
-                    
-                    # Obtener información del remitente
-                    try:
-                        sender = await event.get_sender()
-                        if sender:
-                            if hasattr(sender, 'first_name'):
-                                message_data['sender_name'] = sender.first_name
-                                if hasattr(sender, 'last_name') and sender.last_name:
-                                    message_data['sender_name'] += f" {sender.last_name}"
-                            elif hasattr(sender, 'title'):
-                                message_data['sender_name'] = sender.title
-                            elif hasattr(sender, 'username'):
-                                message_data['sender_name'] = f"@{sender.username}"
-                    except Exception as e:
-                        print(f"⚠️ Error obteniendo remitente: {e}")
-                        message_data['sender_name'] = "Desconocido"
-                    
-                    # Mostrar información del mensaje
-                    preview = message_data['text'][:100] + "..." if len(message_data['text']) > 100 else message_data['text']
-                    print(f"   👤 De: {message_data.get('sender_name', 'Desconocido')}")
-                    print(f"   💬 Texto: {preview}")
-                    print(f"   ⏰ Hora: {message_data['date']}")
-                    
-                    # Aquí podrías emitir una señal para actualizar la interfaz
-                    # Por ejemplo: self.new_message_signal.emit(message_data)
-                    
-                    # Verificar patrones de alarma inmediatamente
-                    await self.check_alarm_patterns(chat_id, message_data)
-                    
-                except Exception as e:
-                    print(f"❌ Error procesando nuevo mensaje: {e}")
-            
-            print("✅ Monitoreo activado. Esperando nuevos mensajes...")
-            
-            # Mantener el cliente conectado
-            await client.run_until_disconnected()
-            
-        except Exception as e:
-            print(f"❌ Error en monitoreo de chats: {e}")
-
 
     async def _verify_session(self):
         try:
@@ -690,7 +599,7 @@ class AsyncWorker(QThread):
             if self.analysis_type == "threads":
                 await self._process_conversation_threads()
             # else:
-            #     await self._set_alarms() #TODO: Implementar esa funcion de alarmas
+            #     await self._set_alarms() 
         except Exception as e:
             print(f"Error en análisis: {e}")
 
@@ -706,7 +615,7 @@ class AsyncWorker(QThread):
                 "start_date": start_date.isoformat(),
                 "end_date": end_date.isoformat(),
                 "total_messages": len(messages),
-                "generated_at": datetime.now().isoformat(),
+                "generated_at": datetime.now(timezone.utc).isoformat(),
             },
             "messages": messages,
         }
@@ -719,95 +628,6 @@ class AsyncWorker(QThread):
         with open(json_filename, "w", encoding="utf-8") as f:
             json.dump(json_data, f, ensure_ascii=False, indent=2)
 
-    # async def _preview_chat(self):
-    #     try:
-    #         if not self.selected_chats:
-    #             self.error.emit("No se especificó chat para vista previa")
-    #             return
-
-    #         chat_info = self.selected_chats[0]
-
-    #         cached_messages = load_chat_from_cache(chat_info)
-    #         if cached_messages:
-    #             print(f"Usando caché para {chat_info['name']}")
-    #             self.preview_loaded.emit(cached_messages)
-    #             return
-
-    #         if not await self._ensure_connection():
-    #             self.error.emit("No autenticado para vista previa")
-    #             return
-
-    #         client = self.client
-
-    #         entity = chat_info["entity"]
-    #         self.current_preview_chat = chat_info
-
-    #         messages = []
-    #         count = 0
-
-    #         chat_type = "desconocido"
-    #         try:
-    #             if isinstance(entity, User):
-    #                 chat_type = "usuario"
-    #             elif isinstance(entity, Channel):
-    #                 if hasattr(entity, "megagroup") and entity.megagroup:
-    #                     chat_type = "grupo_mega"
-    #                 elif hasattr(entity, "broadcast") and entity.broadcast:
-    #                     chat_type = "canal"
-    #                 else:
-    #                     chat_type = "canal_o_grupo"
-    #             elif isinstance(entity, Chat):
-    #                 chat_type = "grupo_pequeño"
-    #         except Exception as e:
-    #             print(f"Error determinando tipo de chat: {e}")
-
-    #         print(f"Vista previa para {chat_info['name']} (tipo: {chat_type})")
-
-    #         async for message in client.iter_messages(
-    #             entity, limit=self.preview_limit, offset_id=self.preview_offset
-    #         ):
-    #             try:
-    #                 sender_name = "Unknown"
-    #                 if getattr(message, "sender", None):
-    #                     sender = message.sender
-    #                     if hasattr(sender, "first_name"):
-    #                         sender_name = str(getattr(sender, "first_name", "") or "")
-    #                         if hasattr(sender, "last_name") and getattr(sender, "last_name", None):
-    #                             sender_name += f" {str(getattr(sender, 'last_name', '') or '')}"
-    #                     elif hasattr(sender, "title"):
-    #                         sender_name = str(getattr(sender, "title", "") or "")
-    #                     elif hasattr(sender, "username"):
-    #                         sender_name = f"@{str(getattr(sender, 'username', '') or '')}"
-    #                 else:
-    #                     sender_name = "Usuario"
-    #             except Exception:
-    #                 sender_name = "Unknown"
-
-    #             message_text = str(getattr(message, "text", "") or "")
-
-    #             media_info = await self._process_media(message, chat_info["name"])
-
-    #             msg_data = {
-    #                 "id": message.id,
-    #                 "date": message.date.isoformat() if getattr(message, "date", None) else "",
-    #                 "sender": sender_name,
-    #                 "text": message_text,
-    #                 "media": media_info,
-    #                 "chat_type": chat_type,
-    #             }
-    #             messages.append(msg_data)
-    #             count += 1
-
-    #         if messages:
-    #             save_chat_to_cache(chat_info, messages)
-
-    #         self.preview_loaded.emit(messages)
-
-    #     except Exception as e:
-    #         error_msg = f"Error en vista previa: {e}"
-    #         print(error_msg)
-    #         self.error.emit(error_msg)
-
     async def _preview_chat(self):
         try:
             if not self.selected_chats:
@@ -816,71 +636,90 @@ class AsyncWorker(QThread):
 
             chat_info = self.selected_chats[0]
 
-            # 1️⃣ Cargar caché
-            cached_messages = load_chat_from_cache(chat_info) or []
-            cached_ids = {msg["id"] for msg in cached_messages}
+            # 🔥 IGNORAR CACHE COMPLETAMENTE
+            print(f"👁️ Vista previa directa desde Telegram: {chat_info['name']}")
 
-            if cached_messages:
-                print(f"📦 Caché cargado: {len(cached_messages)} mensajes")
+            if not await self._ensure_connection():
+                self.error.emit("No autenticado para vista previa")
+                return
 
-            # 2️⃣ Determinar cuántos faltan
-            missing = self.preview_limit - len(cached_messages)
-            messages = list(cached_messages)
+            client = self.client
+            entity = chat_info["entity"]
+            self.current_preview_chat = chat_info
 
-            if missing > 0:
-                if not await self._ensure_connection():
-                    self.error.emit("No autenticado para vista previa")
-                    return
+            messages = []
 
-                client = self.client
-                entity = chat_info["entity"]
-                self.current_preview_chat = chat_info
+            # Determinar tipo de chat (solo informativo)
+            chat_type = "desconocido"
+            try:
+                from telethon.tl.types import User, Channel, Chat
+                if isinstance(entity, User):
+                    chat_type = "usuario"
+                elif isinstance(entity, Channel):
+                    if getattr(entity, "megagroup", False):
+                        chat_type = "grupo_mega"
+                    elif getattr(entity, "broadcast", False):
+                        chat_type = "canal"
+                    else:
+                        chat_type = "canal_o_grupo"
+                elif isinstance(entity, Chat):
+                    chat_type = "grupo_pequeño"
+            except Exception:
+                pass
 
-                fetched = 0
+            # 🔑 CLAVE:
+            # iter_messages SIN offset → mensajes más recientes primero
+            async for message in client.iter_messages(
+                entity,
+                limit=self.preview_limit
+            ):
+                if not message:
+                    continue
 
-                # 🔑 CLAVE:
-                # offset_id = 0 → mensajes MÁS RECIENTES
-                async for message in client.iter_messages(
-                    entity,
-                    limit=missing,
-                    offset_id=0
-                ):
-                    if message.id in cached_ids:
-                        continue
+                # ---------- Sender ----------
+                sender_name = "Usuario"
+                try:
+                    sender = message.sender
+                    if sender:
+                        if hasattr(sender, "first_name"):
+                            sender_name = sender.first_name or ""
+                            if getattr(sender, "last_name", None):
+                                sender_name += f" {sender.last_name}"
+                        elif hasattr(sender, "title"):
+                            sender_name = sender.title
+                        elif hasattr(sender, "username"):
+                            sender_name = f"@{sender.username}"
+                except Exception:
+                    pass
 
-                    sender_name = "Usuario"
-                    try:
-                        sender = message.sender
-                        if sender:
-                            if hasattr(sender, "first_name"):
-                                sender_name = sender.first_name or ""
-                                if getattr(sender, "last_name", None):
-                                    sender_name += f" {sender.last_name}"
-                            elif hasattr(sender, "title"):
-                                sender_name = sender.title
-                            elif hasattr(sender, "username"):
-                                sender_name = f"@{sender.username}"
-                    except Exception:
-                        pass
+                # ---------- Texto ----------
+                text = message.text or ""
 
+                # ---------- Media (NO forzar descarga) ----------
+                media_info = None
+                try:
                     media_info = await self._process_media(message, chat_info["name"])
+                except Exception:
+                    media_info = None
 
-                    msg_data = {
-                        "id": message.id,
-                        "date": message.date.isoformat() if message.date else "",
-                        "sender": sender_name,
-                        "text": message.text or "",
-                        "media": media_info,
-                    }
+                # ❗ Evitar mensajes realmente vacíos
+                if not text and not media_info:
+                    continue
 
-                    messages.append(msg_data)
-                    fetched += 1
+                msg_data = {
+                    "id": message.id,
+                    "date": message.date.isoformat() if message.date else "",
+                    "sender": sender_name,
+                    "text": text,
+                    "media": media_info,
+                    "chat_type": chat_type,
+                }
 
-                if fetched:
-                    print(f"🔄 Completados {fetched} mensajes desde Telegram")
-                    save_chat_to_cache(chat_info, messages)
+                messages.append(msg_data)
 
-            # 3️⃣ Emitir UNA SOLA VEZ
+            print(f"✅ Vista previa cargada: {len(messages)} mensajes")
+
+            # ⚠️ Emitir SOLO UNA VEZ
             self.preview_loaded.emit(messages)
 
         except Exception as e:
@@ -1061,7 +900,7 @@ class AsyncWorker(QThread):
                 "archivos_totales": len(json_files),
                 "resultados_detallados": results,
                 "resumen_sentimientos": summary,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             })
 
             print(f"🎉 Análisis de hilos y sentimientos completado: {successful_files}/{len(json_files)} archivos procesados exitosamente")
@@ -1129,7 +968,125 @@ class AsyncWorker(QThread):
             traceback.print_exc()
             self.error.emit(error_msg)
 
+    async def _load_chat_messages(self):
+        print(f"🔧 [AsyncWorker] Iniciando _load_chat_messages")
+        try:
+            print(f"🔧 [AsyncWorker] Verificando conexión...")
+            if not await self._ensure_connection():
+                print(f"❌ [AsyncWorker] No se pudo establecer conexión")
+                self.error.emit("No se pudo establecer conexión para cargar mensajes")
+                return
 
+            print(f"✅ [AsyncWorker] Conexión establecida")
+            
+            chat_id = self.task_args.get("chat_id")
+            date_range = self.date_range or {}
+            
+            print(f"📋 [AsyncWorker] Chat ID: {chat_id}")
+            print(f"📋 [AsyncWorker] Date range: {date_range}")
 
+            date_from = date_range.get("from")
+            date_to = date_range.get("to")
 
+            # Convertir strings a datetime si es necesario
+            if isinstance(date_from, str):
+                date_from = datetime.fromisoformat(date_from)
+            if isinstance(date_to, str):
+                date_to = datetime.fromisoformat(date_to)
 
+            # Asegurar que las fechas tengan timezone (UTC)
+            if date_from and date_from.tzinfo is None:
+                date_from = date_from.replace(tzinfo=timezone.utc)
+            if date_to and date_to.tzinfo is None:
+                date_to = date_to.replace(tzinfo=timezone.utc)
+
+            print(f"📅 [AsyncWorker] Fecha desde (tz UTC): {date_from}")
+            print(f"📅 [AsyncWorker] Fecha hasta (tz UTC): {date_to}")
+
+            client = self.client
+            print(f"🔧 [AsyncWorker] Obteniendo entidad del chat {chat_id}...")
+            entity = await client.get_entity(chat_id)
+            print(f"✅ [AsyncWorker] Entidad obtenida: {getattr(entity, 'title', getattr(entity, 'first_name', chat_id))}")
+
+            messages = []
+            msg_count = 0
+            in_range_count = 0
+
+            async for msg in client.iter_messages(entity, limit=None):
+                msg_count += 1
+
+                if msg_count % 100 == 0:
+                    print(f"🔧 [AsyncWorker] Procesados {msg_count} mensajes, {in_range_count} en rango...")
+
+                if not msg or not getattr(msg, "date", None):
+                    continue
+
+                # Normalizar fecha del mensaje a aware UTC
+                msg_date = msg.date
+                if msg_date.tzinfo is None:
+                    # si es naive, asumir que Telethon lo devolvió en UTC -> marcarlo como UTC
+                    msg_date = msg_date.replace(tzinfo=timezone.utc)
+                else:
+                    # convertir cualquier tz a UTC
+                    try:
+                        msg_date = msg_date.astimezone(timezone.utc)
+                    except Exception:
+                        # fallback: marcar como UTC
+                        msg_date = msg_date.replace(tzinfo=timezone.utc)
+
+                # Debug para primeros mensajes
+                if msg_count <= 5:
+                    print(f"🔍 [AsyncWorker] Mensaje {msg.id}: Fecha msg: {msg_date} (tz: {msg_date.tzinfo})")
+                    print(f"   date_from: {date_from} (tz: {date_from.tzinfo if date_from else 'N/A'})")
+                    print(f"   date_to: {date_to} (tz: {date_to.tzinfo if date_to else 'N/A'})")
+
+                # Si el mensaje es más antiguo que date_from, terminamos (iteramos del más nuevo al más viejo)
+                if date_from and msg_date < date_from:
+                    print(f"🛑 [AsyncWorker] Mensaje {msg.id} ({msg_date}) más antiguo que date_from, deteniendo")
+                    break
+
+                # Si el mensaje es más reciente que date_to, saltarlo (seguimos iterando hacia atrás)
+                if date_to and msg_date > date_to:
+                    if msg_count <= 5:
+                        print(f"⏭️ [AsyncWorker] Mensaje {msg.id} ({msg_date}) más reciente que date_to ({date_to}), saltando")
+                    continue
+
+                # El mensaje está en el rango
+                in_range_count += 1
+                if in_range_count <= 3:
+                    print(f"✅ [AsyncWorker] Mensaje {msg.id} en rango: {msg_date}")
+                    print(f"   Texto: {(msg.text or '')[:80]}...")
+
+                # Obtener sender
+                sender = "unknown"
+                try:
+                    if getattr(msg, "sender", None):
+                        sender = getattr(msg.sender, "username", None) or \
+                                 getattr(msg.sender, "first_name", "") or \
+                                 str(getattr(msg.sender, "id", "unknown"))
+                except Exception:
+                    pass
+
+                # IMPORTANT: enviar la fecha como ISO string para evitar problemas de serialización por señales
+                msg_data = {
+                    'id': msg.id,
+                    'text': msg.text or "",
+                    'date': msg_date.isoformat(),  
+                    'sender': sender,
+                    'media': None
+                }
+
+                messages.append(msg_data)
+
+            print(f"✅ [AsyncWorker] Iteración completa. Total procesados: {msg_count}")
+            print(f"✅ [AsyncWorker] Mensajes en rango de fechas: {len(messages)}")
+            print(f"📤 [AsyncWorker] Emitiendo señal chat_messages_loaded con {len(messages)} mensajes")
+            self.chat_messages_loaded.emit(messages)
+            print(f"✅ [AsyncWorker] Señal emitida exitosamente")
+
+        except Exception as e:
+            error_msg = f"Error cargando mensajes del chat: {e}"
+            print(f"❌ [AsyncWorker] {error_msg}")
+            import traceback
+            traceback.print_exc()
+            self.error.emit(error_msg)

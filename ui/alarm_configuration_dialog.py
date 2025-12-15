@@ -1,30 +1,23 @@
-import json
 import os
 import re
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
 from pathlib import Path
+from datetime import datetime, timezone
 
 from PyQt6.QtWidgets import (
     QDialog, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
     QPushButton, QLabel, QLineEdit, QSpinBox, QCheckBox,
     QGroupBox, QComboBox, QTextEdit, QMessageBox, QScrollArea,
-    QFrame, QGridLayout, QDateEdit, QTimeEdit, QSizePolicy,
-    QTreeWidget, QTreeWidgetItem, QHeaderView, QSplitter,
-    QToolButton, QInputDialog, QProgressDialog, QApplication,
+    QFrame, QGridLayout, QDateEdit, QTimeEdit, QProgressDialog, QApplication,
     QDialogButtonBox
 )
 
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QDate, QDateTime
-from PyQt6.QtGui import QFont, QColor, QIcon
+from PyQt6.QtCore import Qt, QTimer, QDate, QDateTime
 
 # Importar configuración de regex
 from regex.regex_config import (
     get_all_predefined_patterns, 
     get_social_media_patterns,
-    extract_with_custom_patterns,
     get_ai_prompt_for_regex,
-    get_alarm_message_prompt
 )
 
 # Importar LinkProcessor
@@ -169,7 +162,7 @@ class AlarmConfigurationDialog(QDialog):
         # info_label.setStyleSheet("padding: 10px; background-color: #e8f5e9; border-radius: 5px;")
         # ai_layout.addWidget(info_label, 0, 0, 1, 3)
         
-        ai_layout.addWidget(QLabel("Clave API:"), 1, 0)
+        ai_layout.addWidget(QLabel("Clave API:"), 0, 0)
         self.api_key_input = QLineEdit()
         self.api_key_input.setPlaceholderText("Ej: sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxx")
         self.api_key_input.setEchoMode(QLineEdit.EchoMode.Normal)
@@ -195,7 +188,7 @@ class AlarmConfigurationDialog(QDialog):
             font-size: 13px;
         """)
 
-        self.model_combo.currentIndexChanged.connect(self.on_model_changed)  # AGREGAR ESTA LÍNEA
+        self.model_combo.currentIndexChanged.connect(self.on_model_changed) 
         ai_layout.addWidget(self.model_combo, 1, 1)
         ai_layout.addWidget(self.model_combo, 1, 1)
         
@@ -1214,7 +1207,7 @@ class ChatAlarmConfigWidget(QWidget):
             "pattern": pattern,
             "source": source,
             "description": description or pattern,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
         
         # Actualizar el texto visible
@@ -1222,7 +1215,7 @@ class ChatAlarmConfigWidget(QWidget):
         if current_text:
             current_text += "\n"
         
-        timestamp = datetime.now().strftime("%H:%M")
+        timestamp = datetime.now(timezone.utc).strftime("%H:%M")
         display_desc = description[:40] + "..." if description and len(description) > 40 else description
         
         current_text += f"# [{timestamp}] {source}: {display_desc}\nr'{pattern}'\n"
@@ -1493,7 +1486,7 @@ class ChatAlarmConfigWidget(QWidget):
                 "to": to_datetime.isoformat()
             },
             "patterns": selected_patterns,
-            "created_at": datetime.now().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "last_analyzed_message_id": None,
             "last_analysis_time": None,
             "total_runs": 0,

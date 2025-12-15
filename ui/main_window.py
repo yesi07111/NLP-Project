@@ -1,11 +1,12 @@
 #main_window.py
+import asyncio
 import sys
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import threading
 
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import pyqtSignal, QEventLoop
 from PyQt6.QtWidgets import (
     QApplication, QDialog, QWidget, QVBoxLayout, QHBoxLayout,
     QLineEdit, QPushButton, QLabel, QStackedWidget, QMessageBox, QTabWidget,
@@ -19,16 +20,15 @@ from PyQt6.QtGui import (
 from PyQt6.QtCore import (
     Qt, QTimer
 )
-import schedule
-from telethon import TelegramClient
 
-from config.settings import API_ID, API_HASH, SESSION_NAME
-from telegram.async_worker import AsyncWorker
-from ui.alarm_configuration_dialog import AlarmConfigurationDialog
+import schedule
 from ui.widgets import ChatListWidget
-from ui.dialogs import DateRangeDialog, MediaSelectionDialog, ChatPreviewDialog
+from telegram.async_worker import AsyncWorker
+from telegram.alarm_manager import AlarmManager
+from config.settings import API_ID, API_HASH, SESSION_NAME
 from ui.threads_results_view import ThreadsAnalysisResults
-from telegram.alarm_manager import AlarmConfig, AlarmManager
+from ui.dialogs import DateRangeDialog, MediaSelectionDialog
+from ui.alarm_configuration_dialog import AlarmConfigurationDialog
 
 
 class TelegramApp(QWidget):
@@ -60,6 +60,7 @@ class TelegramApp(QWidget):
         self.send_to_saved_messages_signal.connect(self.handle_send_to_saved_messages)
 
         self.worker = AsyncWorker(None)
+        # self.telegram_lock = threading.Lock()
 
         self.setup_ui()
         self.setup_worker_signals()
@@ -429,7 +430,6 @@ class TelegramApp(QWidget):
         self.chat_screen.setLayout(chat_layout)
         self.stack.addWidget(self.chat_screen)
 
-
     def setup_worker_signals(self):
         self.worker.success.connect(self.on_success)
         self.worker.error.connect(self.on_error)
@@ -546,33 +546,35 @@ class TelegramApp(QWidget):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
-        if reply == QMessageBox.StandardButton.Yes:
-            try:
-                import asyncio
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                client = loop.run_until_complete(self.get_client())
+        if reply != QMessageBox.StandardButton.Yes:
+            return
 
-                if client and client.is_connected():
-                    client.disconnect()
+        try:
+            if self.client and self.client.is_connected():
 
-                loop.close()
+                async def _disconnect():
+                    await self.client.disconnect()
 
-                self.cleanup_existing_sessions()
+                asyncio.run_coroutine_threadsafe(
+                    _disconnect(),
+                    self.telegram_loop
+                ).result(timeout=5)
 
-                self.has_active_session = False
-                self.current_user_phone = None
+            self.cleanup_existing_sessions()
 
-                self.stack.setCurrentWidget(self.phone_screen)
-                self.phone_input.clear()
-                self.password_input.clear()
+            self.has_active_session = False
+            self.current_user_phone = None
 
-                QMessageBox.information(
-                    self, "Sesión Cerrada", "Has cerrado sesión correctamente."
-                )
+            self.stack.setCurrentWidget(self.phone_screen)
+            self.phone_input.clear()
+            self.password_input.clear()
 
-            except Exception as e:
-                QMessageBox.warning(self, "Error", f"No se pudo cerrar sesión: {e}")
+            QMessageBox.information(
+                self, "Sesión Cerrada", "Has cerrado sesión correctamente."
+            )
+
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"No se pudo cerrar sesión: {e}")
 
     def cleanup_existing_sessions(self):
         import os
@@ -694,7 +696,6 @@ class TelegramApp(QWidget):
         print("✅ Actualización de chats finalizada")
         self.refresh_worker = None
 
-
     def show_chat_screen_directly(self):
         self.stack.setCurrentWidget(self.chat_screen)
         QTimer.singleShot(100, self.load_chats_delayed)
@@ -753,13 +754,6 @@ class TelegramApp(QWidget):
             worker.start()
         except Exception as e:
             QMessageBox.warning(self, "Error", f"No se pudo iniciar vista previa: {e}")
-
-    # def show_preview_dialog(self, chat_info, messages, worker):
-    #     try:
-    #         dlg = ChatPreviewDialog(chat_info, messages, worker_ref=worker, parent=self)
-    #         dlg.exec()
-    #     except Exception as e:
-    #         QMessageBox.warning(self, "Error", f"No se pudo abrir la vista previa: {e}")
 
     def show_preview_dialog(self, chat_info, messages, worker):
         from PyQt6.QtWidgets import (
@@ -901,7 +895,6 @@ class TelegramApp(QWidget):
 
         dialog.exec()
 
-
     def preview_with_options(self, chat_info, media_options):
         try:
             worker = self.create_worker()
@@ -968,7 +961,7 @@ class TelegramApp(QWidget):
                 "archivos_procesados": len(analysis_files),
                 "archivos_totales": len(analysis_files),
                 "resultados_detallados": {},
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
             
             for analysis_file in analysis_files:
@@ -1211,7 +1204,7 @@ class TelegramApp(QWidget):
             "archivos_procesados": len(analysis_files),
             "archivos_totales": len(analysis_files),
             "resultados_detallados": {},
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
         # Cargar o generar el resumen de sentimientos
@@ -1465,7 +1458,7 @@ class TelegramApp(QWidget):
             with open(config_file, 'w', encoding='utf-8') as f:
                 json.dump({
                     "alarm_configs": alarm_configs,
-                    "created_at": datetime.now().isoformat()
+                    "created_at": datetime.now(timezone.utc).isoformat()
                 }, f, indent=2, ensure_ascii=False)
         except Exception as e:
             print(f"Error saving alarm configurations: {e}")
@@ -1557,7 +1550,7 @@ class TelegramApp(QWidget):
 
                     # 🔴 Botón eliminar
                     delete_btn = QPushButton("🗑 Eliminar")
-                    delete_btn.setMinimumHeight(36)
+                    delete_btn.setMinimumHeight(16)
                     delete_btn.setMinimumWidth(120)
                     delete_btn.setStyleSheet("""
                         QPushButton {
@@ -1683,10 +1676,10 @@ class TelegramApp(QWidget):
             self.start_alarm_monitoring()
             
             # Iniciar monitoreo de chats
-            self.start_chat_monitoring()
+            # self.start_chat_monitoring()
             
             # Iniciar timer de actualización UI
-            self.start_ui_refresh_timer()
+            # self.start_ui_refresh_timer()
             QMessageBox.information(
                 self,
                 "✅ Alarmas Configuradas",
@@ -1726,8 +1719,7 @@ class TelegramApp(QWidget):
             self.show_alarm_status()
         except Exception as e:
             QMessageBox.critical(self, "Error", f"No se pudo eliminar la alarma:\n{e}")
-
-
+    
     def start_alarm_monitoring(self):
         """Iniciar monitoreo de alarmas y cambios en chats"""
         if self.alarm_monitor_thread and self.alarm_monitor_thread.is_alive():
@@ -1746,13 +1738,13 @@ class TelegramApp(QWidget):
                     # Refrescar lista de chats periódicamente (cada 60 segundos)
                     time.sleep(60)
                     
-                    # Opcional: recargar chats para ver cambios si no hay monitoreo activo
-                    if (hasattr(self, 'worker') and not self.worker.isRunning() and 
-                        self.has_active_session and not self.is_chat_monitoring_active()):
-                        print("🔄 Refrescando lista de chats...")
-                        self.worker = self.create_worker()
-                        self.worker.set_task("load_chats")
-                        self.worker.start()
+                    # # Opcional: recargar chats para ver cambios si no hay monitoreo activo
+                    # if (hasattr(self, 'worker') and not self.worker.isRunning() and 
+                    #     self.has_active_session and not self.is_chat_monitoring_active()):
+                    #     print("🔄 Refrescando lista de chats...")
+                    #     self.worker = self.create_worker()
+                    #     self.worker.set_task("load_chats")
+                    #     self.worker.start()
                         
                 except Exception as e:
                     print(f"⚠️ Error en monitoreo: {e}")
@@ -1766,29 +1758,9 @@ class TelegramApp(QWidget):
         self.alarm_monitor_thread.start()
         print("🚀 Monitoreo de alarmas iniciado")
         
-        # También iniciar monitoreo de chats si hay alarmas configuradas
-        if self.alarm_manager and self.alarm_manager.alarms:
-            self.start_chat_monitoring()
-
-    def start_ui_refresh_timer(self):
-        """Iniciar timer para refrescar UI cada minuto"""
-        if not hasattr(self, 'ui_refresh_timer'):
-            self.ui_refresh_timer = QTimer()
-            self.ui_refresh_timer.timeout.connect(self.refresh_chats_ui)
-            self.ui_refresh_timer.start(60000)  # 60000 ms = 1 minuto
-            print("⏰ Timer de actualización UI iniciado (cada 1 minuto)")
-    
-    def refresh_chats_ui(self):
-        """Refrescar lista de chats sin bloquear UI"""
-        if not self.has_active_session:
-            return
-        
-        # Solo refrescar si no hay operaciones en curso
-        if hasattr(self, 'worker') and not self.worker.isRunning():
-            print("🔄 Refrescando lista de chats...")
-            self.worker = self.create_worker()
-            self.worker.set_task("load_chats")
-            self.worker.start()
+        # # También iniciar monitoreo de chats si hay alarmas configuradas
+        # if self.alarm_manager and self.alarm_manager.alarms:
+        #     self.start_chat_monitoring()
 
     def is_chat_monitoring_active(self):
         """Verificar si el monitoreo de chats está activo"""
@@ -1803,100 +1775,6 @@ class TelegramApp(QWidget):
                     return True
         
         return False
-
-    def start_chat_monitoring(self):
-        """Iniciar monitoreo de chats con alarmas"""
-        if not self.alarm_manager or not self.alarm_manager.alarms:
-            print("⚠️ No hay alarmas para monitorear")
-            return
-        
-        # Obtener IDs de chats con alarmas activas
-        chat_ids = []
-        for alarm_id, alarm in self.alarm_manager.alarms.items():
-            if alarm.enabled:
-                chat_ids.append(alarm.chat_id)
-                print(f"📡 Monitoreando chat: {alarm.chat_title} (ID: {alarm.chat_id})")
-        
-        if not chat_ids:
-            print("⚠️ No hay chats habilitados para monitoreo")
-            return
-        
-        # Si ya hay un monitor_worker vivo en self, no crear otro
-        existing_monitor = getattr(self, "monitor_worker", None)
-        if existing_monitor and existing_monitor.isRunning():
-            print("⚠️ El monitor de chats ya está en ejecución")
-            return
-        
-        # Preferir reutilizar el worker principal si existe y no está ocupado
-        main_worker = getattr(self, "worker", None)
-        try_reuse_main = False
-        if main_worker:
-            try:
-                # Solo reutilizar si no está ejecutándose (evita pisar tareas activas)
-                if not main_worker.isRunning():
-                    try_reuse_main = True
-            except Exception:
-                try_reuse_main = False
-        
-        if try_reuse_main:
-            # Reutilizar worker principal
-            monitor_worker = main_worker
-            monitor_worker.set_task("monitor_chats", task_args={'chat_ids': chat_ids})
-            # conectar señales para logging y limpieza (no duplicar conexiones)
-            def _on_success(msg):
-                print(f"✅ Monitor worker (principal): {msg}")
-            def _on_error(err):
-                print(f"❌ Error en monitor worker (principal): {err}")
-            try:
-                monitor_worker.success.connect(_on_success)
-                monitor_worker.error.connect(_on_error)
-            except Exception:
-                pass
-            monitor_worker.start()
-            self.monitor_worker = monitor_worker
-            print(f"✅ Monitoreo iniciado para {len(chat_ids)} chats (reutilizando worker principal)")
-            return
-        
-        # Si no podemos reutilizar el worker principal, crear uno persistente en self
-        self.monitor_worker = self.create_worker()
-        self.monitor_worker.set_task("monitor_chats", task_args={'chat_ids': chat_ids})
-        
-        # Conectar manejadores para logging y limpieza al terminar
-        def on_monitor_success(msg):
-            print(f"✅ Monitor worker: {msg}")
-        def on_monitor_error(err):
-            print(f"❌ Error en monitor worker: {err}")
-        def on_monitor_finished():
-            print("🛑 Monitor worker finalizado")
-            try:
-                self.monitor_worker.success.disconnect(on_monitor_success)
-            except Exception:
-                pass
-            try:
-                self.monitor_worker.error.disconnect(on_monitor_error)
-            except Exception:
-                pass
-            try:
-                self.monitor_worker.finished.disconnect(on_monitor_finished)
-            except Exception:
-                pass
-            # liberar referencia para evitar QThread: Destroyed while running
-            try:
-                self.monitor_worker = None
-            except Exception:
-                pass
-        
-        try:
-            self.monitor_worker.success.connect(on_monitor_success)
-            self.monitor_worker.error.connect(on_monitor_error)
-            self.monitor_worker.finished.connect(on_monitor_finished)
-        except Exception:
-            pass
-        
-        # Iniciar el worker (no usar threading.Thread; QThread.start() ya crea su hilo)
-        self.monitor_worker.start()
-        print(f"✅ Monitoreo iniciado para {len(chat_ids)} chats")
-
 
     def closeEvent(self, event):
         """Cerrar aplicación correctamente"""
@@ -1931,7 +1809,7 @@ class TelegramApp(QWidget):
             test_message = (
                 "✅ PRUEBA DE ALARMA\n\n"
                 "Este es un mensaje de prueba enviado a Mensajes Guardados.\n"
-                f"Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n"
+                f"Fecha: {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M:%S')}\n"
                 "Estado: Sistema de alarmas funcionando correctamente.\n\n"
                 "📢 Las alarmas configuradas te enviarán resúmenes periódicos."
             )
@@ -2043,6 +1921,156 @@ class TelegramApp(QWidget):
             traceback.print_exc()
             QMessageBox.critical(self, "❌ Error", error_msg)
 
+    def fetch_chat_messages_for_alarm(self, chat_id, date_from, date_to, alarm_id):
+        """
+        Obtener mensajes de un chat para análisis de alarma.
+        SÍNCRONO pero Qt-safe (NO bloquea señales).
+        """
+        from telegram.alarm_manager import AlarmMessage
+
+        print(f"📥 [MainWindow] Obteniendo mensajes para alarma {alarm_id}, chat {chat_id}")
+
+        # Normalizar fechas
+        if date_from and date_from.tzinfo is None:
+            date_from = date_from.replace(tzinfo=timezone.utc)
+            print(f"🔧 [MainWindow] date_from sin timezone, añadido UTC")
+
+        if date_to and date_to.tzinfo is None:
+            date_to = date_to.replace(tzinfo=timezone.utc)
+            print(f"🔧 [MainWindow] date_to sin timezone, añadido UTC")
+
+        if date_from and date_to and date_from > date_to:
+            print("⚠️ [MainWindow] Fechas invertidas, corrigiendo")
+            date_from, date_to = date_to, date_from
+
+        # Resultado compartido
+        result = {
+            "done": False,
+            "messages": [],
+        }
+
+        loop = QEventLoop()
+
+        def on_messages_loaded(msgs):
+            print(f"✅ [MainWindow] Señal recibida: {len(msgs)} mensajes")
+            alarm_messages = []
+
+            for msg in msgs:
+                date_val = msg.get("date")
+
+                if isinstance(date_val, str):
+                    d = datetime.fromisoformat(date_val)
+                elif isinstance(date_val, datetime):
+                    d = date_val
+                else:
+                    d = datetime.now(timezone.utc)
+
+                if d.tzinfo is None:
+                    d = d.replace(tzinfo=timezone.utc)
+                else:
+                    d = d.astimezone(timezone.utc)
+
+                alarm_messages.append(
+                    AlarmMessage(
+                        id=msg.get("id", 0),
+                        text=msg.get("text", ""),
+                        date=d,
+                        sender=msg.get("sender", "unknown"),
+                        media=msg.get("media"),
+                    )
+                )
+
+            result["messages"] = alarm_messages
+            result["done"] = True
+            loop.quit()
+
+        def on_error(err):
+            print(f"❌ [MainWindow] Error del worker: {err}")
+            result["done"] = True
+            result["messages"] = []
+            loop.quit()
+
+        print("✅ [MainWindow] Creando worker...")
+        worker = self.create_worker()
+
+        worker.chat_messages_loaded.connect(on_messages_loaded, Qt.ConnectionType.QueuedConnection)
+        worker.error.connect(on_error, Qt.ConnectionType.QueuedConnection)
+
+        worker.set_task(
+            "load_chat_messages",
+            task_args={"chat_id": chat_id},
+            date_range={"from": date_from, "to": date_to},
+        )
+
+        print("🚀 [MainWindow] Iniciando worker...")
+        worker.start()
+
+        # Timeout real (Qt-safe)
+        QTimer.singleShot(120_000, loop.quit)
+        print("⏳ [MainWindow] Esperando mensajes (event loop Qt)...")
+        loop.exec()
+
+        # Limpieza
+        try:
+            worker.quit()
+            worker.wait(2000)
+        except Exception:
+            pass
+
+        try:
+            worker.chat_messages_loaded.disconnect(on_messages_loaded)
+            worker.error.disconnect(on_error)
+        except Exception:
+            pass
+
+        if result["done"]:
+            print(f"✅ [MainWindow] {len(result['messages'])} mensajes obtenidos")
+            return result["messages"]
+
+        print("⏱️ [MainWindow] TIMEOUT esperando mensajes")
+        return []
+
+    def send_alarm_message_to_saved(self, message, alarm_id):
+        """Enviar mensaje de alarma de forma Qt-safe"""
+        print(f"📤 [MainWindow] Enviando mensaje de alarma {alarm_id}")
+
+        result = {"success": False}
+        loop = QEventLoop()
+
+        def on_success(msg):
+            print(f"✅ [MainWindow] Mensaje enviado correctamente")
+            result["success"] = True
+            loop.quit()
+
+        def on_error(err):
+            print(f"❌ [MainWindow] Error enviando mensaje: {err}")
+            result["success"] = False
+            loop.quit()
+
+        worker = self.create_worker()
+        worker.success.connect(on_success, Qt.ConnectionType.QueuedConnection)
+        worker.error.connect(on_error, Qt.ConnectionType.QueuedConnection)
+
+        worker.set_task("send_message", task_args={"message": message})
+
+        worker.start()
+
+        QTimer.singleShot(60_000, loop.quit)
+        loop.exec()
+
+        try:
+            worker.quit()
+            worker.wait(2000)
+        except Exception:
+            pass
+
+        try:
+            worker.success.disconnect(on_success)
+            worker.error.disconnect(on_error)
+        except Exception:
+            pass
+
+        return result["success"]
 
     def update_chat_unread_count(self, chat_id):
         """Actualizar contador de no leídos para un chat específico"""
